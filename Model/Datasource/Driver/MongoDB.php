@@ -22,5 +22,11 @@ use Aldu\Core\Model\Datasource;
 
 class MongoDB extends Datasource\Driver
 {
-  
+  protected $link;
+
+  public function __construct($uri)
+  {
+    parent::__construct($uri);
+
+  }
 }

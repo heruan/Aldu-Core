@@ -69,9 +69,14 @@ class Controller extends Event\Listener
     $this->view->__attach($this);
     $this->model->__attach($this->view);
   }
-  
+
   public function index()
   {
     return $this->view->index();
+  }
+
+  public function add()
+  {
+    return $this->view->add();
   }
 }

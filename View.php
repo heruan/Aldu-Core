@@ -25,31 +25,50 @@ class View extends Stub
   public static $Controller;
   public $model;
   public $render;
+  public $locale;
   protected $router;
   protected $request;
   protected $response;
 
-  public function __construct(Model $model, HTTP\Request $request,
-    HTTP\Response $response)
+  public function __construct(Model $model, HTTP\Request $request, HTTP\Response $response)
   {
     parent::__construct();
     $this->model = $model;
+    $this->locale = Locale::instance();
     $this->request = $request;
     $this->response = $response;
+  }
+
+  public function add()
+  {
+    switch ($this->render) {
+    case 'page':
+    default:
+      $page = new Helper\HTML\Page();
+      $page->theme();
+      $page->title($this->locale->t('Add new %s', $this->model->name()));
+      $form = $this->form($this->model, __FUNCTION__);
+      $title = $form->text('title', array('title' => $this->locale->t('Title')));
+      $form->add($title);
+      $form->submit();
+      return $this->response->body($page->compose($form));
+    }
+  }
+
+  public function form($model, $action)
+  {
+    return new Helper\HTML\Form($model, $action);
   }
 
   public function table($models = array(), $_ = array())
   {
     $class = get_class($this->model);
-    extract(
-      array_merge(
-        array(
-          'actions' => static::cfg('table.actions'),
-          'headers' => static::cfg('table.headers'),
-          'columns' => static::cfg('table.columns') ? 
-            : array_combine(array_keys(get_object_vars($this->model)),
-              array_keys(get_object_vars($this->model)))
-        ), $_));
+    extract(array_merge(array(
+      'actions' => static::cfg('table.actions'),
+      'headers' => static::cfg('table.headers'),
+      'columns' => static::cfg('table.columns') ?
+        : array_combine(array_keys(get_object_vars($this->model)), array_keys(get_object_vars($this->model)))
+    ), $_));
     foreach ($columns as $name => $title) {
       if (is_numeric($name)) {
         $name = $title;
@@ -61,7 +80,8 @@ class View extends Stub
         'title' => _($title),
         'attributes' => array(
           'class' => implode(' ', array_merge(array(
-            'sortable', 'searchable'
+            'sortable',
+            'searchable'
           ), $classes))
         )
       );
@@ -78,10 +98,8 @@ class View extends Stub
       $page = new Helper\HTML\Page();
       $page->theme();
       $page->title(__METHOD__);
-      $page->keywords('keyword');
-      $table = $this->table();
-      $page->body->append($table);
-      return $this->response->body($page->compose());
+      $table = $this->table($models);
+      return $this->response->body($page->compose($table));
     }
   }
 }

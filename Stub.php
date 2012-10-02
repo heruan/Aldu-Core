@@ -218,7 +218,7 @@ abstract class Stub
    * @throws Exception
    */
 
-  public function __call($name, $arguments)
+  public function ___call($name, $arguments)
   {
     if (is_callable(array(
       $this, $name
@@ -238,7 +238,7 @@ abstract class Stub
    * @throws Exception
    */
 
-  public static function __callStatic($name, $arguments)
+  public static function ___callStatic($name, $arguments)
   {
     throw new Exception(
       "Static method {$name} undefined in class " . get_called_class());

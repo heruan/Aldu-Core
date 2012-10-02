@@ -31,6 +31,7 @@ class Document extends Helper\DOM
   public $root;
   public $type;
   public $encoding;
+  protected $implementation;
   protected $doctype;
   protected $document;
   protected $xpath;
@@ -44,8 +45,9 @@ class Document extends Helper\DOM
     parent::__construct();
     $this->type = $type;
     $this->encoding = "utf-8";
-    $this->doctype = DOMImplementation::createDocumentType($this->type, $publicId, $systemId);
-    $this->document = DOMImplementation::createDocument(null, $this->type,
+    $this->implementation = new DOMImplementation();
+    $this->doctype = $this->implementation->createDocumentType($this->type, $publicId, $systemId);
+    $this->document = $this->implementation->createDocument(null, $this->type,
       $this->doctype);
     $this->document->xmlVersion = "1.0";
     $this->document->xmlStandalone = true;
@@ -55,11 +57,11 @@ class Document extends Helper\DOM
     $this->xpath = new DOMXPath($this->document);
     $this->root = new Node($this, $this->document->documentElement);
   }
-  
+
   public function doctype($type, $publicId = null, $systemId = null)
   {
     $this->type = $type;
-    $this->doctype = DOMImplementation::createDocumentType($this->type, $publicId, $systemId);
+    $this->doctype = $this->implementation->createDocumentType($this->type, $publicId, $systemId);
   }
 
   public function __call($name, $arguments)
@@ -145,9 +147,7 @@ class Document extends Helper\DOM
     }
     elseif (is_string($node)) {
       $nodes = $this->query($node, $context);
-      if ($nodes->length) {
-        return new Node($this, new NodeList($nodes));
-      }
+      return new Node($this, new NodeList($nodes));
     }
     return null;
   }

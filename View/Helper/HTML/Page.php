@@ -38,7 +38,10 @@ class Page extends Helper\HTML
   public $title;
   public $charset;
   public $body;
+  protected $ui;
   protected $router;
+  protected $request;
+  protected $response;
 
   public function __construct($document = null, $lang = 'en-us')
   {
@@ -46,16 +49,17 @@ class Page extends Helper\HTML
     $this->node = $this->document->root->node;
     $this->lang = $lang;
     $this->head = $this->append('head');
-    $this->charset = $this->head
-      ->append('meta',
-        array(
-          'charset' => $this->document->encoding
-        ));
+    $this->charset = $this->head->append('meta', array(
+      'charset' => $this->document->encoding
+    ));
     $this->title = $this->head->append('title');
     $this->body = $this->append('body');
+    $this->ui = new UI($this);
     $this->router = Core\Router::instance();
+    $this->request = Core\Net\HTTP\Request::instance();
+    $this->response = Core\Net\HTTP\Response::instance();
   }
-  
+
   public function theme($theme = null)
   {
     parent::theme($theme);
@@ -74,21 +78,19 @@ class Page extends Helper\HTML
     if (is_array($title)) {
       $title = implode(array_filter($separator, $title));
     }
-    $this->title
-      ->text(
-        implode($separator,
-          array_filter(array(
-            $prepend, $title, $append
-          ))));
+    $this->title->text(implode($separator, array_filter(array(
+      $prepend,
+      $title,
+      $append
+    ))));
   }
 
   public function description($description)
   {
     if (!count($node = $this->head->node('meta[name=description]'))) {
-      $node = $this->head
-        ->append('meta', array(
-          'name' => 'description'
-        ));
+      $node = $this->head->append('meta', array(
+        'name' => 'description'
+      ));
     }
     $node->content = $description;
   }
@@ -99,10 +101,9 @@ class Page extends Helper\HTML
       $keywords = implode(',', $keywords);
     }
     if (!count($node = $this->head->node('meta[name=keywords]'))) {
-      $node = $this->head
-        ->append('meta', array(
-          'name' => 'keywords'
-        ));
+      $node = $this->head->append('meta', array(
+        'name' => 'keywords'
+      ));
     }
     $node->content = $keywords;
   }
@@ -112,11 +113,13 @@ class Page extends Helper\HTML
     if (!count($node = $this->head->node('base'))) {
       $node = $this->head->prepend('base');
     }
-    $base = $base ? 
-      : implode('/',
-        array(
-          static::cfg('themes.base'), $this->theme['name']
-        ));
+    $base = $base ?
+      : implode('/', array(
+        static::cfg('themes.base'),
+        $this->theme['name'],
+        null
+      )
+    );
     $node->href = $this->router->fullBase . $base;
   }
 
@@ -132,7 +135,7 @@ class Page extends Helper\HTML
       }
     }
   }
-  
+
   public function populateBlocks($context = null)
   {
     if (!$context) {
@@ -142,7 +145,9 @@ class Page extends Helper\HTML
       if ($position = $node->data('position')) {
         $this->router->openContext($position);
         $Block = new Models\Block();
-        foreach ($Block->get(array('position' => $position)) as $block) {
+        foreach ($Block->get(array(
+          'position' => $position
+        )) as $block) {
           $this->router->openContext($block->name);
           if (is_callable($block->callback)) {
             $node->append(call_user_func($block->callback, $block, $node));
@@ -153,18 +158,27 @@ class Page extends Helper\HTML
       }
     }
   }
-  
+
   public function compose($content = null)
   {
     $this->base();
-    if (!$node = $this->body->node('#aldu-core-view-helper-html-page-content')) {
+    $this->body->data(array(
+      'aldu-core-router-base' => $this->router->base,
+      'aldu-core-router-path' => $this->router->path
+    ));
+    if (!count($node = $this->body->node('#aldu-core-view-helper-html-page-content'))) {
       $node = $this->body;
     }
     $node->append($content);
     $this->prefixAnchors($this->body);
     $this->populateBlocks($this->body);
-    $this->body->data(array(
-    ));
+    foreach ($this->body->node('#aldu-core-view-helper-html-page-messages') as $node) {
+      foreach ($this->response->messages() as $priority => $messages) {
+        foreach ($messages as $message) {
+          $node->append($this->ui->message($message, $priority));
+        }
+      }
+    }
     return $this;
   }
 

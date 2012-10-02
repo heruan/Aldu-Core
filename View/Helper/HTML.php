@@ -22,7 +22,6 @@ use Aldu\Core\View;
 
 class HTML extends DOM\Node
 {
-  
   protected $theme;
 
   public function __construct($node = null, $document = null)
@@ -62,13 +61,13 @@ class HTML extends DOM\Node
   {
     return $this->cast(__FUNCTION__, func_get_args());
   }
-  
+
   public function append()
   {
     return $this->cast(__FUNCTION__, func_get_args());
   }
 
-  public function node()
+  public function node($node)
   {
     return $this->cast(__FUNCTION__, func_get_args());
   }

@@ -26,8 +26,7 @@ class Dispatcher extends Event\Listener
   public $response;
   public $cache;
 
-  public function __construct(HTTP\Request $request,
-    HTTP\Response $response = null)
+  public function __construct(HTTP\Request $request, HTTP\Response $response = null)
   {
     parent::__construct();
     $this->request = $request;
@@ -42,8 +41,7 @@ class Dispatcher extends Event\Listener
     }
     $this->trigger('beforeCache');
     if ($this->request->is('get')
-      && ALDU_CACHE_FAILURE
-        !== ($cached = $this->cache->fetch($this->request->id))) {
+      && ALDU_CACHE_FAILURE !== ($cached = $this->cache->fetch($this->request->id))) {
       $this->trigger('requestIsCached');
       $this->response = $cached;
       $this->response->header('X-Aldu-Cached', 'yes');
@@ -53,17 +51,16 @@ class Dispatcher extends Event\Listener
       $this->trigger('beforeRouting');
       $router = new Router($this->request, $this->response);
       foreach ($router->resolve($this->request->path) as $result) {
-        extract(
-          array_merge(
-            array(
-              'controller' => null, 'action' => null, 'arguments' => array()
-            ), $result));
+        extract(array_merge(array(
+          'controller' => null,
+          'action' => null,
+          'arguments' => array()
+        ), $result));
         $callback = array(
-          $controller, $action
+          $controller,
+          $action
         );
-        
-        if (!is_callable($callback)
-          || !call_user_func_array($callback, $arguments)) {
+        if (!is_callable($callback) || !call_user_func_array($callback, $arguments)) {
           $this->response->status(404);
           break;
         }
@@ -71,20 +68,17 @@ class Dispatcher extends Event\Listener
       $this->cache->store($this->request->id, $this->response);
       $this->response->header('X-Aldu-Cached', 'no');
       $this->trigger('afterRouting');
-      switch ($this->response->status()) {
+      switch ($status = $this->response->status()) {
+      case 401:
       case 404:
-      //$response->message("Page not found.", LOG_NOTICE);
-      //$response->body(Helpers\Html\Page::instance()->compose());
-        $this->notFound();
+        $page = new View\Helper\HTML\Page();
+        $page->theme();
+        $this->response->message($status, LOG_NOTICE);
+        $this->response->body($page->compose());
         break;
       }
     }
     $this->trigger('afterCache');
-  }
-
-  protected function notFound()
-  {
-    return $this->response->body(uniqid(__METHOD__));
   }
 
   public function dispatch(HTTP\Response $response = null)

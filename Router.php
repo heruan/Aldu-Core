@@ -62,7 +62,7 @@ class Router extends Stub
   protected $request;
   protected $response;
   protected $contexts = array();
-  
+
 
   public function __construct(HTTP\Request $request, HTTP\Response $response)
   {
@@ -88,7 +88,7 @@ class Router extends Stub
         $trace[] = $result;
       }
     }
-    
+
     $this->host = $this->request->host;
     $this->base = $this->request->base;
     $prefix = implode('/', array_diff($prefixSteps, $steps));
@@ -100,7 +100,7 @@ class Router extends Stub
     $this->prefixPath = $this->prefix . $this->path;
     $this->basePath = $this->basePrefix . $this->path;
     $this->fullPath = $this->fullBasePrefix . $this->path;
-    
+
     $this->openContext($this->path);
     $routeSteps = $steps;
     $routes = array_merge(static::cfg('routes'), array());
@@ -113,6 +113,7 @@ class Router extends Stub
       if (empty($routeSteps) && $result) {
         $this->current = $route;
         $trace[] = $result;
+        break;
       }
     }
     $this->closeContext($this->path);
@@ -198,7 +199,7 @@ class Router extends Stub
               foreach ($_steps as $ns) {
                 $_namespace .= Inflector::camelize($ns) . NS;
               }
-              $class = $_namespace . $_class;
+              $class = $_namespace . 'Controllers' . NS . $_class;
               if (ClassLoader::classExists($class)) {
                 $controller = new $class($this->request, $this->response);
                 $steps = array_slice($steps, $count);
@@ -249,6 +250,7 @@ class Router extends Stub
         }
       }
     } while (false);
+
     return array(
       'host' => $this->host, 'path' => $this->path,
       'namespace' => $route->namespace, 'controller' => $controller,
@@ -309,7 +311,7 @@ class Router extends Stub
   {
     $this->redirect($this->prefix . $this->path);
   }
-  
+
 
   public function context()
   {

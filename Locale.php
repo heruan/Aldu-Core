@@ -20,5 +20,10 @@ namespace Aldu\Core;
 
 class Locale extends Stub
 {
-  
+  public function t()
+  {
+    $args = func_get_args();
+    $text = array_shift($args);
+    return vsprintf(_($text), $args);
+  }
 }
