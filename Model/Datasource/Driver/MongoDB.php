@@ -19,14 +19,72 @@
 
 namespace Aldu\Core\Model\Datasource\Driver;
 use Aldu\Core\Model\Datasource;
+use Mongo;
+use MongoId;
+use MongoDBRef;
 
 class MongoDB extends Datasource\Driver
 {
-  protected $link;
-
-  public function __construct($uri)
+  public function __construct($url, $parts)
   {
-    parent::__construct($uri);
+    parent::__construct($url);
+    if ($mongo = new Mongo($url)) {
+      $db = ltrim($parts['path'], '/');
+      $this->link = $mongo->$db;
+    }
+  }
+  
+  public function save($models = array())
+  {
+    if (!is_array($models)) {
+      $models = array($models);
+    }
+    foreach ($models as $model) {
+      $collection = get_class($model);
+      $id = $this->id($model);
+      foreach ($model as $attribute => &$value) {
+        if (is_array($value)) {
+          $this->normalizeArray($value);
+        }
+        elseif ($value instanceof Core\Model) {
+          $this->normalizeReference($value);
+        }
+      }
+      $this->link->$collection->update(array('_id' => $id), $model, array('upsert' => true));
+    }
+  }
 
+  protected function normalizeArray(&$array)
+  {
+    foreach ($array as $key => &$value) {
+      if (is_array($value)) {
+        $this->normalizeArray($value);
+      }
+      elseif ($value instanceof Core\Model) {
+        $this->normalizeReference($value);
+      }
+    }
+  }
+  
+  protected function normalizeReference(&$value)
+  {
+    $model = $value;
+    $model->save();
+    $value = MongoDBRef::create($this->collection($model), $this->id($model));
+  }
+  
+  protected function collection($model)
+  {
+    return get_class($model);
+  }
+  
+  protected function MongoId($model)
+  {
+    return get_class($model) . ':' . $model->id;
+  }
+  
+  protected function id($mongoId)
+  {
+    return explode(':', $mongoId);
   }
 }

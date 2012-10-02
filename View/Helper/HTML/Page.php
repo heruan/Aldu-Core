@@ -27,8 +27,7 @@ class Page extends Helper\HTML
     'themes' => array(
       'base' => 'public/themes',
       'default' => array(
-        'name' => 'default',
-        'html' => 'index.html'
+        'name' => 'default', 'html' => 'index.html'
       )
     )
   );
@@ -39,22 +38,26 @@ class Page extends Helper\HTML
   public $charset;
   public $body;
   protected $ui;
+  protected $theme;
   protected $router;
   protected $request;
   protected $response;
 
-  public function __construct($document = null, $lang = 'en-us')
+  public function __construct($document = null, $lang = 'en-us', $theme = null)
   {
     parent::__construct('html', $document);
     $this->node = $this->document->root->node;
     $this->lang = $lang;
     $this->head = $this->append('head');
-    $this->charset = $this->head->append('meta', array(
-      'charset' => $this->document->encoding
-    ));
+    $this->charset = $this->head
+      ->append('meta',
+        array(
+          'charset' => $this->document->encoding
+        ));
     $this->title = $this->head->append('title');
     $this->body = $this->append('body');
     $this->ui = new UI($this);
+    $this->theme = $theme ? : static::cfg('themes.default');
     $this->router = Core\Router::instance();
     $this->request = Core\Net\HTTP\Request::instance();
     $this->response = Core\Net\HTTP\Response::instance();
@@ -62,7 +65,12 @@ class Page extends Helper\HTML
 
   public function theme($theme = null)
   {
-    parent::theme($theme);
+    $theme = $theme ? : $this->theme;
+    if (is_array($theme) && isset($theme['html'])) {
+      $html = ALDU_THEMES . DS . $theme['name'] . DS . $theme['html'];
+    }
+    $this->document->load($html);
+    $this->node = $this->document->root->node;
     $this->head = $this->node('head');
     $this->charset = $this->head->node('meta[charset]');
     $this->title = $this->head->node('title');
@@ -78,19 +86,21 @@ class Page extends Helper\HTML
     if (is_array($title)) {
       $title = implode(array_filter($separator, $title));
     }
-    $this->title->text(implode($separator, array_filter(array(
-      $prepend,
-      $title,
-      $append
-    ))));
+    $this->title
+      ->text(
+        implode($separator,
+          array_filter(array(
+            $prepend, $title, $append
+          ))));
   }
 
   public function description($description)
   {
     if (!count($node = $this->head->node('meta[name=description]'))) {
-      $node = $this->head->append('meta', array(
-        'name' => 'description'
-      ));
+      $node = $this->head
+        ->append('meta', array(
+          'name' => 'description'
+        ));
     }
     $node->content = $description;
   }
@@ -101,9 +111,10 @@ class Page extends Helper\HTML
       $keywords = implode(',', $keywords);
     }
     if (!count($node = $this->head->node('meta[name=keywords]'))) {
-      $node = $this->head->append('meta', array(
-        'name' => 'keywords'
-      ));
+      $node = $this->head
+        ->append('meta', array(
+          'name' => 'keywords'
+        ));
     }
     $node->content = $keywords;
   }
@@ -113,13 +124,11 @@ class Page extends Helper\HTML
     if (!count($node = $this->head->node('base'))) {
       $node = $this->head->prepend('base');
     }
-    $base = $base ?
-      : implode('/', array(
-        static::cfg('themes.base'),
-        $this->theme['name'],
-        null
-      )
-    );
+    $base = $base ? 
+      : implode('/',
+        array(
+          static::cfg('themes.base'), $this->theme['name'], null
+        ));
     $node->href = $this->router->fullBase . $base;
   }
 
@@ -130,7 +139,8 @@ class Page extends Helper\HTML
     }
     foreach ($context->node('a') as $anchor) {
       $href = $anchor->href;
-      if (substr($href, 0, 1) === '/' && !preg_match("#^{$this->router->basePrefix}#", $href)) {
+      if (substr($href, 0, 1) === '/'
+        && !preg_match("#^{$this->router->basePrefix}#", $href)) {
         $anchor->href = $this->router->basePrefix . substr($href, 1);
       }
     }
@@ -145,9 +155,10 @@ class Page extends Helper\HTML
       if ($position = $node->data('position')) {
         $this->router->openContext($position);
         $Block = new Models\Block();
-        foreach ($Block->get(array(
-          'position' => $position
-        )) as $block) {
+        foreach ($Block
+          ->get(array(
+            'position' => $position
+          )) as $block) {
           $this->router->openContext($block->name);
           if (is_callable($block->callback)) {
             $node->append(call_user_func($block->callback, $block, $node));
@@ -162,11 +173,14 @@ class Page extends Helper\HTML
   public function compose($content = null)
   {
     $this->base();
-    $this->body->data(array(
-      'aldu-core-router-base' => $this->router->base,
-      'aldu-core-router-path' => $this->router->path
-    ));
-    if (!count($node = $this->body->node('#aldu-core-view-helper-html-page-content'))) {
+    $this->body
+      ->data(
+        array(
+          'aldu-core-router-base' => $this->router->base,
+          'aldu-core-router-path' => $this->router->path
+        ));
+    if (!count(
+      $node = $this->body->node('#aldu-core-view-helper-html-page-content'))) {
       $node = $this->body;
     }
     $node->append($content);

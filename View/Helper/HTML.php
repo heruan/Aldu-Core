@@ -22,7 +22,6 @@ use Aldu\Core\View;
 
 class HTML extends DOM\Node
 {
-  protected $theme;
 
   public function __construct($node = null, $document = null)
   {
@@ -38,23 +37,21 @@ class HTML extends DOM\Node
     parent::__construct($document, $node);
   }
 
-  public function theme($theme = null)
-  {
-    $this->theme = $theme ? : static::cfg('themes.default');
-    if (is_array($this->theme) && isset($this->theme['html'])) {
-      $html = ALDU_THEMES . DS . $this->theme['name'] . DS . $this->theme['html'];
-    }
-    $this->document->load($html);
-    $this->node = $this->document->root->node;
-    return $this;
-  }
-
   protected function cast($function, $args)
   {
-    $node = call_user_func_array(array(
-          'parent', $function
-        ), $args);
-    return new HTML($node, $this->document);
+    $callback = array(
+      get_parent_class(__CLASS__), $function
+    );
+    if (is_callable($callback)) {
+      $node = call_user_func_array($callback, $args);
+      return new HTML($node, $this->document);
+    }
+    return null;
+  }
+
+  public function create()
+  {
+    return $this->cast(__FUNCTION__, func_get_args());
   }
 
   public function prepend()

@@ -22,5 +22,24 @@ use Aldu\Core;
 
 class Datasource extends Core\Stub
 {
+  protected static $drivers = array();
   
+  public function __construct($url)
+  {
+    if (is_array($url)) {
+      $parts = $url;
+      $url = http_build_url($url);
+    }
+    else {
+      $parts = parse_url($url);
+    }
+    if (!isset(static::$drivers[$url])) {
+      switch ($parts['scheme']) {
+      case 'mongodb':
+        static::$drivers[$url] = new Datasource\Driver\MongoDB($url, $parts);
+        break;
+      }
+    }
+    $this->driver = static::$drivers[$url];
+  }
 }

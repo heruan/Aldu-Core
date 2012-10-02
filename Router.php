@@ -199,11 +199,16 @@ class Router extends Stub
               foreach ($_steps as $ns) {
                 $_namespace .= Inflector::camelize($ns) . NS;
               }
-              $class = $_namespace . 'Controllers' . NS . $_class;
-              if (ClassLoader::classExists($class)) {
-                $controller = new $class($this->request, $this->response);
-                $steps = array_slice($steps, $count);
-                break 2;
+              $classes = array(
+                $_namespace . $_class,
+                $_namespace . 'Controllers' . NS . $_class
+              );
+              foreach ($classes as $class) {
+                if (ClassLoader::classExists($class)) {
+                 $controller = new $class($this->request, $this->response);
+                 $steps = array_slice($steps, $count);
+                 break 3;
+                }
               }
               $count--;
             }

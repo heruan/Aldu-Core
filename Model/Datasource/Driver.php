@@ -22,5 +22,11 @@ use Aldu\Core;
 
 class Driver extends Core\Stub implements DriverInterface
 {
+  protected $url;
+  protected $link;
   
+  public function __construct($url)
+  {
+    $this->url = $url;
+  }
 }

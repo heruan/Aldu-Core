@@ -86,7 +86,7 @@ class Form extends Helper\HTML
       $this->values = get_object_vars($this->model);
       $index = $this->currentIndex();
       if ($this->request->is('post')) {
-        $this->response->debug($this->request->data());
+        //$this->response->debug($this->request->data());
         $data = $this->request->data($modelClass);
         if (isset($data[$index])) {
           $this->values = $data[$index];
@@ -173,7 +173,7 @@ class Form extends Helper\HTML
     $id = uniqid($name);
     $_name = $modelClass ? $modelClass . '[' . $this->indexes[$modelClass] . '][' . $name . ']'
       : $name;
-    $div = $this->document->create('div', array(
+    $div = $this->create('div', array(
       'title' => $description,
       'data-name' => $name,
       'class' => trim(implode(' ', array(
@@ -186,7 +186,7 @@ class Form extends Helper\HTML
     ));
     unset($attributes['class']);
     $this->append($div);
-    $label = $title ? $this->document->create('label', $title, array(
+    $label = $title ? $this->create('label', $title, array(
         'for' => $id
       )) : null;
     switch ($type) {
@@ -239,14 +239,14 @@ class Form extends Helper\HTML
       }
       $hidden = null;
       if ($checked && (!isset($relation) || !$relation)) {
-        $hidden = $this->document->create('input', array(
+        $hidden = $this->create('input', array(
           'form' => $this->id,
           'name' => ($type === 'radio' && isset($__name)) ? $__name .= "[$aot][$_id]" : $_name,
           'type' => 'hidden',
           'value' => 0
         ));
       }
-      $element = $this->document->create('input', array_merge($attributes, array(
+      $element = $this->create('input', array_merge($attributes, array(
         'id' => $id,
         'name' => $_name,
         'type' => $type,
@@ -259,7 +259,7 @@ class Form extends Helper\HTML
       break;
     case 'fieldset':
       $div->class .= ' aldu-helpers-html-form-fieldset';
-      $element = $this->document->create('fieldset', array_merge($attributes, array(
+      $element = $this->create('fieldset', array_merge($attributes, array(
         'name' => $_name
       )));
       if ($title)
@@ -278,7 +278,7 @@ class Form extends Helper\HTML
           $value = $relation['value'];
         }
       }
-      $element = $this->document->create('select', array_merge($attributes, array(
+      $element = $this->create('select', array_merge($attributes, array(
         'id' => $id,
         'name' => $_name
       )));
@@ -325,7 +325,7 @@ class Form extends Helper\HTML
       $div->append($label, $element);
       break;
     case 'submit':
-      $element = $this->document->create('button', $title ? : $L->t('Submit'), array_merge($attributes, array(
+      $element = $this->create('button', $title ? : $L->t('Submit'), array_merge($attributes, array(
         'name' => '_submit',
         'type' => $type,
         'value' => $this->currentIndex()
@@ -357,7 +357,7 @@ class Form extends Helper\HTML
       }
       break;
     case 'button':
-      $element = $this->document->create('button', $title, array_merge($attributes, array(
+      $element = $this->create('button', $title, array_merge($attributes, array(
         'name' => $name,
         'value' => $value
         )));
@@ -365,7 +365,7 @@ class Form extends Helper\HTML
       break;
     case 'textarea':
       $div->class .= ' aldu-helpers-html-form-textarea';
-      $element = $this->document->create('textarea', $value ? : null, array_merge($attributes, array(
+      $element = $this->create('textarea', $value ? : null, array_merge($attributes, array(
         'id' => $id,
         'name' => $_name
       )));
@@ -391,7 +391,7 @@ class Form extends Helper\HTML
       switch (array_shift($fileType)) {
       case 'image':
         if ($this->model->filepath || ($value = $value ? : null)) {
-          $thumb = $this->document->create('img', array(
+          $thumb = $this->create('img', array(
             'src' => $this->model->url('thumb'),
             'alt' => ''
           ));
@@ -402,7 +402,7 @@ class Form extends Helper\HTML
         $label->append('span.tooltip', $L->t('Maximum file size: %sMB', round($this->request->upload->maxUploadSize()
           / 1024 / 1024)));
       }
-      $element = $this->document->create('input', array_merge($attributes, array(
+      $element = $this->create('input', array_merge($attributes, array(
         'id' => $id,
         'name' => $_name,
         'type' => $type
@@ -425,7 +425,7 @@ class Form extends Helper\HTML
         }
       }
       $div->class .= ' aldu-helpers-html-form-input';
-      $element = $this->document->create('input', array_merge($attributes, array(
+      $element = $this->create('input', array_merge($attributes, array(
         'id' => $id,
         'name' => $_name,
         'title' => $title,

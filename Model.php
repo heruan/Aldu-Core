@@ -23,17 +23,26 @@ namespace Aldu\Core;
 class Model extends Stub
 {
   public static $Controller;
+  public static $datasource;
   public static $references = array();
   public $id;
 
   public function __construct($attributes = array())
   {
     parent::__construct();
+    if (!static::$datasource) {
+      static::$datasource = new Model\Datasource(static::cfg('datasource.uri'));
+    }
     foreach ($attributes as $name => $value) {
       $this->$name = $value;
     }
   }
 
+  public function save()
+  {
+    static::$datasource->save($this);
+  }
+  
   public function name()
   {
     if (!$name = static::cfg('name')) {
