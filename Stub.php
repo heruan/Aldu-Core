@@ -50,7 +50,7 @@ abstract class Stub
    * Objects configuration
    * @var array
    */
-  public static $configuration = array();
+  protected static $configuration = array();
 
   /**
    * Object attributes
@@ -114,6 +114,7 @@ abstract class Stub
           $config = array_replace_recursive($config, $_config[$self]);
         }
       }
+      static::$configuration = $config;
       self::$_configurations[$self] = $config;
     }
     return self::$_configurations[$self];

@@ -19,8 +19,14 @@
 
 namespace Aldu\Core\Model\Datasource\Driver;
 use Aldu\Core\Model\Datasource;
+use SQLite3;
 
 class SQLite extends Datasource\Driver
 {
-  
+  public function __construct($url, $parts)
+  {
+    parent::__construct($url);
+    if (!$this->link = new SQLite3($parts['path'])) {
+    }
+  }
 }

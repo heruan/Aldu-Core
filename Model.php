@@ -23,7 +23,15 @@ namespace Aldu\Core;
 class Model extends Stub
 {
   public static $Controller;
-  public static $datasource;
+  protected static $datasource;
+  protected static $configuration = array(
+    'datasource' => array(
+      'url' => array(
+        'scheme' => 'sqlite',
+        'path' => ALDU_DEFAULT_DATASOURCE
+      )
+    )
+  );
   public static $references = array();
   public $id;
 
@@ -31,18 +39,38 @@ class Model extends Stub
   {
     parent::__construct();
     if (!static::$datasource) {
-      static::$datasource = new Model\Datasource(static::cfg('datasource.uri'));
+      static::$datasource = new Model\Datasource(static::cfg('datasource.url'));
     }
     foreach ($attributes as $name => $value) {
       $this->$name = $value;
     }
   }
 
-  public function save()
+  public function save($models = array())
   {
-    static::$datasource->save($this);
+    if (empty($models)) {
+      $models[] = $this;
+    }
+    return static::$datasource->save($models);
   }
-  
+
+  public function first($search = array())
+  {
+    return static::$datasource->first(get_class($this), $search);
+  }
+
+  public function read($search = array())
+  {
+    $class = get_class($this);
+    return static::$datasource->read($class, $search);
+  }
+
+  public function purge($search = array())
+  {
+    $class = get_class($this);
+    return static::$datasource->purge($class, $search);
+  }
+
   public function name()
   {
     if (!$name = static::cfg('name')) {

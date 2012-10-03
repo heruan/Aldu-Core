@@ -26,7 +26,7 @@ use Aldu\Core\Utility\Inflector;
 
 class Router extends Stub
 {
-  public static $configuration = array(
+  protected static $configuration = array(
     'prefixes' => array(),
     'routes' => array(
       'paginate' => array(

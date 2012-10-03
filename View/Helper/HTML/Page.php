@@ -23,7 +23,7 @@ use Aldu\Core;
 
 class Page extends Helper\HTML
 {
-  public static $configuration = array(
+  protected static $configuration = array(
     'themes' => array(
       'base' => 'public/themes',
       'default' => array(
