@@ -308,7 +308,9 @@ class Response extends Net\HTTP
 
   public function initialize()
   {
-    ob_start();
+    if (!$this->request->is('cli')) {
+      ob_start();
+    }
   }
 
   /**

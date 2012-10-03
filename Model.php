@@ -23,12 +23,11 @@ namespace Aldu\Core;
 class Model extends Stub
 {
   public static $Controller;
-  protected static $datasource;
+  protected static $datasources = array();
   protected static $configuration = array(
     'datasource' => array(
       'url' => array(
-        'scheme' => 'sqlite',
-        'path' => ALDU_DEFAULT_DATASOURCE
+        'scheme' => 'sqlite', 'path' => ALDU_DEFAULT_DATASOURCE
       )
     )
   );
@@ -38,37 +37,77 @@ class Model extends Stub
   public function __construct($attributes = array())
   {
     parent::__construct();
-    if (!static::$datasource) {
-      static::$datasource = new Model\Datasource(static::cfg('datasource.url'));
+    $class = get_class($this);
+    if (!isset(self::$datasources[$class])) {
+      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
     }
     foreach ($attributes as $name => $value) {
       $this->$name = $value;
     }
   }
+  
+  public function __get($name)
+  {
+    if (property_exists($this, $name)) {
+      if (!($this->$name instanceof Model\Attribute)) {
+        $this->$name = new Model\Attribute();
+      }
+      return $this->$name->value;
+    }
+  }
 
+  public function __set($name, $value)
+  {
+    if (property_exists($this, $name)) {
+      if (!($this->$name instanceof Model\Attribute)) {
+        $this->$name = new Model\Attribute($value);
+      }
+    }
+  }
+
+  public function __toArray()
+  {
+    $array = array();
+    foreach (get_object_vars($this) as $name => $attribute) {
+      $array[$name] = ($attribute instanceof Model\Attribute) ? $attribute
+          ->value : null;
+    }
+    return $array;
+  }
+  
   public function save($models = array())
   {
     if (empty($models)) {
       $models[] = $this;
     }
-    return static::$datasource->save($models);
+    return self::$datasources[get_class($this)]->save($models);
   }
 
-  public function first($search = array())
+  public static function first($search = array())
   {
-    return static::$datasource->first(get_class($this), $search);
+    $class = get_called_class();
+    if (!isset(self::$datasources[$class])) {
+      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
+    }
+    return self::$datasources[$class]->first($class, $search);
   }
 
-  public function read($search = array())
+  public static function read($search = array())
   {
-    $class = get_class($this);
-    return static::$datasource->read($class, $search);
+    $class = get_called_class();
+    if (!isset(self::$datasources[$class])) {
+      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
+    }
+    return self::$datasource->read($class, $search);
   }
 
-  public function purge($search = array())
+  public static function purge($search = array())
   {
-    $class = get_class($this);
-    return static::$datasource->purge($class, $search);
+    $class = get_called_class();
+    if (!isset(self::$datasources[$class])) {
+      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
+    }
+    return self::$datasources[$class]->purge($class, $search);
   }
 
   public function name()
@@ -91,12 +130,12 @@ class Model extends Stub
       $_ = $action;
       $action = 'view';
     }
-    extract(array_merge(array(
-        'prefix' => null,
-        'absolute' => false,
-        'arguments' => array(),
-        'render' => null
-      ), $_));
+    extract(
+      array_merge(
+        array(
+          'prefix' => null, 'absolute' => false, 'arguments' => array(),
+          'render' => null
+        ), $_));
     $arguments = array_filter($arguments);
     $R = Router::instance();
     if ($action === 'view' && $this->path) {
@@ -105,12 +144,15 @@ class Model extends Stub
     else {
       $action = is_bool($action) ? '' : $action;
       $parts = explode(NS, get_class($this));
-      $parts = array_map(array('Aldu\Core\Utility\Inflector', 'underscore'), $parts);
+      $parts = array_map(array(
+          'Aldu\Core\Utility\Inflector', 'underscore'
+        ), $parts);
       $class = array_pop($parts);
       array_pop($parts);
       $ns = implode(NS, $parts);
       $id = $this->id ? '/' . $this->id : '';
-      $url = str_replace(NS, '/', strtolower($ns)) . '/' . $class . $id . '/' . $action;
+      $url = str_replace(NS, '/', strtolower($ns)) . '/' . $class . $id . '/'
+        . $action;
     }
     $prefix = is_null($prefix) ? null : rtrim($prefix, '/');
     if ($prefix && $absolute) {

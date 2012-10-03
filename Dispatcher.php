@@ -40,7 +40,11 @@ class Dispatcher extends Event\Listener
       $this->cache->enabled = false;
     }
     $this->trigger('beforeCache');
-    if ($this->request->is('get')
+    if ($this->request->is('cli')) {
+      $this->trigger('afterCache');
+      return;
+    }
+    elseif ($this->request->is('get')
       && ALDU_CACHE_FAILURE !== ($cached = $this->cache->fetch($this->request->id))) {
       $this->trigger('requestIsCached');
       $this->response = $cached;
