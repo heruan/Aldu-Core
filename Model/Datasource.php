@@ -68,18 +68,17 @@ class Datasource extends Core\Stub
 
   public function save($models = array())
   {
-    if (empty($models)) {
-      return null;
-    }
     if (!is_array($models)) {
       $models = array($models);
     }
-    $class = get_class($models[0]);
-    $cache = implode('::', array(
-      $class
-    ));
-    $this->cache->delete($cache);
-    return $this->driver->save($models);
+    foreach ($models as $model) {
+      $class = get_class($model);
+      $cache = implode('::', array(
+        $class
+      ));
+      $this->cache->delete($cache);
+      $this->driver->save($model);
+    }
   }
 
   public function first($class, $search = array())

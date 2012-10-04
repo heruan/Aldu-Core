@@ -24,9 +24,25 @@ class Driver extends Core\Stub implements DriverInterface
 {
   protected $url;
   protected $link;
-  
+
   public function __construct($url)
   {
     $this->url = $url;
+  }
+
+  protected function normalizeAttribute($class, $attribute, &$value)
+  {
+    if (is_array($value)) {
+      foreach ($value as &$_value) {
+        $this->normalizeAttribute($class, $attribute, $_value);
+      }
+    }
+    else {
+      switch ($class::cfg("attributes.$attribute.type")) {
+      case 'datetime':
+        $value = date(ALDU_DATETIME_FORMAT, strtotime($value));
+        break;
+      }
+    }
   }
 }

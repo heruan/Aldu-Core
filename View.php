@@ -67,7 +67,7 @@ class View extends Stub
       'actions' => static::cfg('table.actions'),
       'headers' => static::cfg('table.headers'),
       'columns' => static::cfg('table.columns') ?
-        : array_combine(array_keys(get_object_vars($this->model)), array_keys(get_object_vars($this->model)))
+        : array_combine(array_keys($this->model->__toArray()), array_keys($this->model->__toArray()))
     ), $_));
     foreach ($columns as $name => $title) {
       if (is_numeric($name)) {

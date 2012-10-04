@@ -83,7 +83,7 @@ class Form extends Helper\HTML
       else {
         $this->indexes[$modelClass] = 0;
       }
-      $this->values = get_object_vars($this->model);
+      $this->values = $this->model->__toArray();
       $index = $this->currentIndex();
       if ($this->request->is('post')) {
         //$this->response->debug($this->request->data());

@@ -55,43 +55,60 @@ class MongoDB extends Datasource\Driver implements DriverInterface
       );
     }
     foreach ($models as &$model) {
-      $collection = get_class($model);
+      $class = get_class($model);
+      $collection = $this->collection($model);
       $id = $this->mongoId($model);
-      foreach ($model as $attribute => &$value) {
-        if (is_array($value)) {
+      $doc = $model->__toArray();
+      $doc['_id'] = $id;
+      $extensions = array();
+      foreach ($doc as $attribute => &$value) {
+        if (MongoDBRef::isRef($value)) {
+        }
+        elseif (is_array($value)) {
           $this->normalizeArray($value);
         }
         elseif ($value instanceof Core\Model) {
           $this->normalizeReference($value);
         }
       }
-      $doc = get_object_vars($model);
-      $doc['_id'] = $id;
-      $this->link->$collection
-        ->update(array(
-            '_id' => $id
-          ), $doc, array(
-            'upsert' => true
-          ));
+      $this->link->$collection->update(array(
+        '_id' => $id,
+      ), $doc, array(
+        'upsert' => true,
+        'multiple' => true
+      ));
     }
+  }
+
+  public function delete($model)
+  {
+    $collection = $this->collection($model);
+    $id = $this->mongoId($model);
+    $this->link->$collection->remove(array(
+      '_id' => $id
+    ));
   }
 
   public function purge($class, $search = array())
   {
+    $collection = $this->collection($class);
     if (empty($search)) {
-      $collection = $this->collection($class);
       $this->link->$collection->drop();
       $autoincrement = static::cfg('autoincrement.collection');
-      $this->link->$autoincrement
-        ->remove(array(
-          '_id' => $collection
-        ));
+      $this->link->$autoincrement->remove(array(
+        '_id' => $collection
+      ));
+    }
+    else {
+      $this->normalizeSearch($search);
+      $this->link->$collection->remove($search);
     }
   }
 
   public function first($class, $search = array())
   {
     $collection = $this->collection($class);
+    $this->normalizeSearch($search);
     if ($doc = $this->link->$collection->findOne($search)) {
       $this->normalizeArray($doc);
       $model = new $class($doc);
@@ -105,6 +122,7 @@ class MongoDB extends Datasource\Driver implements DriverInterface
   {
     $models = array();
     $collection = $this->collection($class);
+    $this->normalizeSearch($search);
     foreach ($this->link->$collection->find($search) as $doc) {
       if ($doc) {
         $this->normalizeArray($doc);
@@ -116,7 +134,16 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     return $models;
   }
 
-  protected function normalizeArray(&$array, $split = false)
+  protected function normalizeSearch(&$array)
+  {
+    foreach ($array as $key => &$value) {
+      if ($value instanceof Core\Model) {
+        $this->normalizeReference($value);
+      }
+    }
+  }
+
+  protected function normalizeArray(&$array)
   {
     foreach ($array as $label => &$value) {
       if ($value instanceof Core\Model || MongoDBRef::isRef($value)) {
@@ -126,7 +153,7 @@ class MongoDB extends Datasource\Driver implements DriverInterface
         }
       }
       elseif (is_array($value)) {
-        $this->normalizeArray($value, $split);
+        $this->normalizeArray($value);
       }
     }
   }
@@ -136,15 +163,13 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     if ($value instanceof Core\Model) {
       $model = $value;
       $model->save();
-      $value = MongoDBRef::create($this->collection($model),
-        $this->mongoId($model));
+      $value = MongoDBRef::create($this->collection($model), $this->mongoId($model));
     }
     elseif (MongoDBRef::isRef($value)) {
       $class = $this->getClass($value['$ref']);
-      $value = $this
-        ->first($class, array(
-          '_id' => $value['$id']
-        ));
+      $value = $this->first($class, array(
+        '_id' => $value['$id']
+      ));
     }
   }
 
@@ -167,29 +192,25 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     if (!$model->id) {
       $autoincrement = static::cfg('autoincrement.collection');
       $collection = $this->collection($class);
-      if (!$this->link->$autoincrement
-        ->find(array(
-          '_id' => $collection
-        ))->count()) {
-        $this->link->$autoincrement
-          ->insert(
-            array(
-              '_id' => $collection, 'id' => 1
-            ));
+      if (!$this->link->$autoincrement->find(array(
+        '_id' => $collection
+      ))->count()) {
+        $this->link->$autoincrement->insert(array(
+          '_id' => $collection,
+          'id' => 1
+        ));
       }
-      $result = $this->link
-        ->command(
-          array(
-            'findandmodify' => $autoincrement,
-            'query' => array(
-              '_id' => $collection
-            ),
-            'update' => array(
-              '$inc' => array(
-                'id' => 1
-              )
-            )
-          ));
+      $result = $this->link->command(array(
+        'findandmodify' => $autoincrement,
+        'query' => array(
+          '_id' => $collection
+        ),
+        'update' => array(
+          '$inc' => array(
+            'id' => 1
+          )
+        )
+      ));
       $model->id = $result['value']['id'];
       $this->mongoIds[$class][$model->id] = new MongoId();
     }

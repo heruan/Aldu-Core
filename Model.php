@@ -19,49 +19,61 @@
  */
 
 namespace Aldu\Core;
+use Aldu\Core\Model\Attribute;
 
 class Model extends Stub
 {
   public static $Controller;
-  protected static $datasources = array();
   protected static $configuration = array(
     'datasource' => array(
       'url' => array(
         'scheme' => 'sqlite', 'path' => ALDU_DEFAULT_DATASOURCE
+      ),
+      'ldap' => array(
+        'openldap' => array(
+          'mappings' => array(
+            'created' => 'createTimestamp',
+            'updated' => 'modifyTimestamp'
+          )
+        )
       )
     )
   );
-  public static $references = array();
+  protected static $datasources = array();
+  public static $references = array(); // FIXME public to protected
+  protected static $attributes = array(
+    'created' => array(
+      'type' => 'datetime'
+    ),
+    'updated' => array(
+      'type' => 'datetime'
+    )
+  );
+
   public $id;
+  public $name;
+  public $created;
+  public $updated;
+
+  protected static function configure($configuration = array())
+  {
+    $configuration['attributes'] = static::$attributes;
+    return array_replace_recursive(parent::configure(), $configuration);
+  }
 
   public function __construct($attributes = array())
   {
     parent::__construct();
     $class = get_class($this);
+    $class::cfg(array('attributes' => $class::$attributes));
     if (!isset(self::$datasources[$class])) {
       self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
     }
     foreach ($attributes as $name => $value) {
+      if (!property_exists($this, $name)) {
+        continue;
+      }
       $this->$name = $value;
-    }
-  }
-  
-  public function __get($name)
-  {
-    if (property_exists($this, $name)) {
-      if (!($this->$name instanceof Model\Attribute)) {
-        $this->$name = new Model\Attribute();
-      }
-      return $this->$name->value;
-    }
-  }
-
-  public function __set($name, $value)
-  {
-    if (property_exists($this, $name)) {
-      if (!($this->$name instanceof Model\Attribute)) {
-        $this->$name = new Model\Attribute($value);
-      }
     }
   }
 
@@ -69,12 +81,11 @@ class Model extends Stub
   {
     $array = array();
     foreach (get_object_vars($this) as $name => $attribute) {
-      $array[$name] = ($attribute instanceof Model\Attribute) ? $attribute
-          ->value : null;
+      $array[$name] = $attribute;
     }
     return $array;
   }
-  
+
   public function save($models = array())
   {
     if (empty($models)) {
@@ -98,7 +109,7 @@ class Model extends Stub
     if (!isset(self::$datasources[$class])) {
       self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
     }
-    return self::$datasource->read($class, $search);
+    return self::$datasources[$class]->read($class, $search);
   }
 
   public static function purge($search = array())

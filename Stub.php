@@ -84,7 +84,7 @@ abstract class Stub
    * @param array $config
    */
 
-  public static function configure($config = array())
+  protected static function configure($config = array())
   {
     $self = get_called_class();
     if ($config) {
@@ -126,10 +126,17 @@ abstract class Stub
    * @param string $key
    * @param mixed $value
    */
-  public static function cfg($key = '', $value = null)
+  public static function cfg($key = null, $value = null)
   {
+    $config = array();
     $self = get_called_class();
     $self::configure();
+    if (is_null($key)) {
+      return isset(self::$_configurations[$self]) ? self::$_configurations[$self] : $config;
+    }
+    if (is_array($key)) {
+      return self::$_configurations[$self] = array_replace_recursive(self::$_configurations[$self], $key);
+    }
     if ($value) {
       self::$_configurations[$self] = array_replace_recursive(
         self::$_configurations[$self],
@@ -137,7 +144,6 @@ abstract class Stub
           $key => $value
         )));
     }
-    $config = array();
     $keys = explode('.', $key);
     if (isset(self::$_configurations[$self])) {
       $config = self::$_configurations[$self];
