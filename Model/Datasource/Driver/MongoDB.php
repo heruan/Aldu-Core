@@ -22,7 +22,7 @@ use Aldu\Core\Model\Datasource\DriverInterface;
 use Aldu\Core\Model\Datasource;
 use Aldu\Core;
 use DateTime;
-use Mongo, MongoDBRef, MongoId, MongoDate;
+use Mongo, MongoDBRef, MongoId, MongoDate, MongoRegex, MongoException;
 
 class MongoDB extends Datasource\Driver implements DriverInterface
 {
@@ -31,7 +31,7 @@ class MongoDB extends Datasource\Driver implements DriverInterface
       'collection' => '_autoincrement'
     )
   );
-
+  protected $conn;
   private $mongoIds = array();
 
   public function __construct($url, $parts)
@@ -39,13 +39,14 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     parent::__construct($url);
     if ($mongo = new Mongo($url)) {
       $db = ltrim($parts['path'], '/');
+      $this->conn = $mongo;
       $this->link = $mongo->$db;
     }
   }
 
   public function __destruct()
   {
-
+    $this->conn->close();
   }
 
   public function save($models = array())
@@ -85,10 +86,11 @@ class MongoDB extends Datasource\Driver implements DriverInterface
             ->update(
               array(
                 'id' => $doc['id']
-              ), array('$set' => $doc),
-              array(
+              ), array(
+                '$set' => $doc
+              ), array(
                 'multiple' => true
-            ));
+              ));
         }
       }
     }
@@ -133,21 +135,43 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     return $doc;
   }
 
-  public function read($class, $search = array())
+  public function read($class, $search = array(), $options = array())
   {
     $models = array();
-    $collection = $this->collection($class);
-    $this->denormalizeSearch($search);
-    foreach ($this->link->$collection->find($search) as $doc) {
-      if ($doc) {
-        $this->normalizeArray($doc);
-        $this->normalizeAttributes($class, $doc);
-        $model = new $class($doc);
-        $this->mongoId($model, $doc['_id']);
-        $models[] = $model;
-      }
+    $docs = $this->cursor($class, $search, $options);
+    foreach ($docs as $doc) {
+      $this->normalizeArray($doc);
+      $this->normalizeAttributes($class, $doc);
+      $model = new $class($doc);
+      $this->mongoId($model, $doc['_id']);
+      $models[] = $model;
     }
     return $models;
+
+  }
+
+  public function count($class, $search = array(), $options = array())
+  {
+    return $this->cursor($class, $search, $options)->count();
+  }
+
+  protected function cursor($class, $search = array(), $options = array())
+  {
+    $collection = $this->collection($class);
+    $this->denormalizeSearch($search);
+    $cursor = $this->link->$collection->find($search);
+    foreach ($options as $key => $option) {
+      switch ($key) {
+      case 'skip':
+      case 'limit':
+      case 'sort':
+        if ($option) {
+          $cursor = $cursor->$key($option);
+        }
+        break;
+      }
+    }
+    return $cursor;
   }
 
   protected function denormalizeSearch(&$array)
@@ -155,6 +179,12 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     foreach ($array as $key => &$value) {
       if ($value instanceof Core\Model) {
         $this->denormalizeReference($value);
+      }
+      else {
+        try {
+          $value = new MongoRegex($value);
+        } catch (MongoException $me) {
+        }
       }
     }
   }

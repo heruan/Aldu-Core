@@ -25,7 +25,7 @@ abstract class Localized extends Core\Model
   protected static $configuration = array(
     'extensions' => array(
       'localized' => array(
-        'class' => 'Aldu\Core\Locale',
+        'ref' => 'Aldu\Core\Locale',
         'key' => 'locale',
         'attributes' => array(
           'locale' => true
