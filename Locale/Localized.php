@@ -26,7 +26,10 @@ abstract class Localized extends Core\Model
     'extensions' => array(
       'localized' => array(
         'class' => 'Aldu\Core\Locale',
-        'attribute' => 'locale'
+        'key' => 'locale',
+        'attributes' => array(
+          'locale' => true
+        )
       )
     )
   );

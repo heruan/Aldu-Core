@@ -19,6 +19,7 @@
 
 namespace Aldu\Core\Model\Datasource;
 use Aldu\Core;
+use DateTime;
 
 class Driver extends Core\Stub implements DriverInterface
 {
@@ -30,6 +31,13 @@ class Driver extends Core\Stub implements DriverInterface
     $this->url = $url;
   }
 
+  protected function normalizeAttributes($class, &$attributes)
+  {
+    foreach ($attributes as $attribute => &$value) {
+      $this->normalizeAttribute($class, $attribute, $value);
+    }
+  }
+  
   protected function normalizeAttribute($class, $attribute, &$value)
   {
     if (is_array($value)) {
@@ -37,10 +45,10 @@ class Driver extends Core\Stub implements DriverInterface
         $this->normalizeAttribute($class, $attribute, $_value);
       }
     }
-    else {
+    elseif ($value) {
       switch ($class::cfg("attributes.$attribute.type")) {
       case 'datetime':
-        $value = date(ALDU_DATETIME_FORMAT, strtotime($value));
+        $value = new DateTime($value);
         break;
       }
     }

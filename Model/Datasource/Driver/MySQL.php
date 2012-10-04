@@ -21,6 +21,7 @@ namespace Aldu\Core\Model\Datasource\Driver;
 use Aldu\Core\Model\Datasource;
 use Aldu\Core\Exception;
 use Aldu\Core;
+use DateTime;
 
 class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 {
@@ -93,10 +94,10 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     }
     try {
       if (!$model->id) {
-        $model->created = date(self::DATETIME_FORMAT);
+        $model->created = new DateTime();
       }
       else {
-        $model->updated = date(self::DATETIME_FORMAT);
+        $model->updated = new DateTime();
       }
       foreach ($tables as $table) {
         $values = array_intersect_key($fields, $this->fields($table));
@@ -107,12 +108,15 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
             $placeholders[] = "NULL";
           }
           else {
+            if ($value instanceof DateTime) {
+              $value = $value->format(self::DATETIME_FORMAT);
+            }
             switch ($this->type($table, $column)) {
               case 'int':
                 $placeholders[] = "%s";
                 break;
               default:
-                $value = "'%s'";
+                $placeholders[] = "'%s'";
             }
           }
           $update[] = "`$column` = VALUES(`$column`)";

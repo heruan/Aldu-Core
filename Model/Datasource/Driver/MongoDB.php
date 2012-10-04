@@ -21,7 +21,8 @@ namespace Aldu\Core\Model\Datasource\Driver;
 use Aldu\Core\Model\Datasource\DriverInterface;
 use Aldu\Core\Model\Datasource;
 use Aldu\Core;
-use Mongo, MongoId, MongoDBRef;
+use DateTime;
+use Mongo, MongoDBRef, MongoId, MongoDate;
 
 class MongoDB extends Datasource\Driver implements DriverInterface
 {
@@ -55,38 +56,50 @@ class MongoDB extends Datasource\Driver implements DriverInterface
       );
     }
     foreach ($models as &$model) {
+      if (!$model->id) {
+        $model->created = new DateTime();
+      }
+      else {
+        $model->updated = new DateTime();
+      }
       $class = get_class($model);
       $collection = $this->collection($model);
-      $id = $this->mongoId($model);
+      $ids = $this->mongoId($model);
       $doc = $model->__toArray();
-      $doc['_id'] = $id;
-      $extensions = array();
-      foreach ($doc as $attribute => &$value) {
-        if (MongoDBRef::isRef($value)) {
-        }
-        elseif (is_array($value)) {
-          $this->normalizeArray($value);
-        }
-        elseif ($value instanceof Core\Model) {
-          $this->normalizeReference($value);
+      $this->denormalizeArray($doc);
+      foreach ($ids as $id) {
+        $doc['_id'] = $id;
+        $this->link->$collection
+          ->update(array(
+              '_id' => $id,
+            ), $doc, array(
+              'upsert' => true
+            ));
+      }
+      unset($doc['_id']);
+      foreach ($class::cfg('extensions') as $extName => $ext) {
+        if (isset($ext['attributes'])) {
+          $extDoc = array_intersect_key($doc, $ext['attributes']);
+          $doc = array_diff_key($doc, $extDoc);
+          $this->link->$collection
+            ->update(
+              array(
+                'id' => $doc['id']
+              ), array('$set' => $doc),
+              array(
+                'multiple' => true
+            ));
         }
       }
-      $this->link->$collection->update(array(
-        '_id' => $id,
-      ), $doc, array(
-        'upsert' => true,
-        'multiple' => true
-      ));
     }
   }
 
   public function delete($model)
   {
     $collection = $this->collection($model);
-    $id = $this->mongoId($model);
     $this->link->$collection->remove(array(
-      '_id' => $id
-    ));
+        'id' => $model->id
+      ));
   }
 
   public function purge($class, $search = array())
@@ -95,12 +108,13 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     if (empty($search)) {
       $this->link->$collection->drop();
       $autoincrement = static::cfg('autoincrement.collection');
-      $this->link->$autoincrement->remove(array(
-        '_id' => $collection
-      ));
+      $this->link->$autoincrement
+        ->remove(array(
+          '_id' => $collection
+        ));
     }
     else {
-      $this->normalizeSearch($search);
+      $this->denormalizeSearch($search);
       $this->link->$collection->remove($search);
     }
   }
@@ -108,12 +122,13 @@ class MongoDB extends Datasource\Driver implements DriverInterface
   public function first($class, $search = array())
   {
     $collection = $this->collection($class);
-    $this->normalizeSearch($search);
+    $this->denormalizeSearch($search);
     if ($doc = $this->link->$collection->findOne($search)) {
       $this->normalizeArray($doc);
+      $this->normalizeAttributes($class, $doc);
       $model = new $class($doc);
       $this->mongoId($model, $doc['_id']);
-      return new $class($doc);
+      return $model;
     }
     return $doc;
   }
@@ -122,10 +137,11 @@ class MongoDB extends Datasource\Driver implements DriverInterface
   {
     $models = array();
     $collection = $this->collection($class);
-    $this->normalizeSearch($search);
+    $this->denormalizeSearch($search);
     foreach ($this->link->$collection->find($search) as $doc) {
       if ($doc) {
         $this->normalizeArray($doc);
+        $this->normalizeAttributes($class, $doc);
         $model = new $class($doc);
         $this->mongoId($model, $doc['_id']);
         $models[] = $model;
@@ -134,11 +150,11 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     return $models;
   }
 
-  protected function normalizeSearch(&$array)
+  protected function denormalizeSearch(&$array)
   {
     foreach ($array as $key => &$value) {
       if ($value instanceof Core\Model) {
-        $this->normalizeReference($value);
+        $this->denormalizeReference($value);
       }
     }
   }
@@ -146,7 +162,10 @@ class MongoDB extends Datasource\Driver implements DriverInterface
   protected function normalizeArray(&$array)
   {
     foreach ($array as $label => &$value) {
-      if ($value instanceof Core\Model || MongoDBRef::isRef($value)) {
+      if ($value instanceof MongoDate) {
+        $value = '@' . $value->sec;
+      }
+      elseif (MongoDBRef::isRef($value)) {
         $this->normalizeReference($value);
         if (is_null($value)) {
           unset($array[$label]);
@@ -158,18 +177,41 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     }
   }
 
+  protected function denormalizeArray(&$array)
+  {
+    foreach ($array as $label => &$value) {
+      if ($value instanceof Core\Model) {
+        $this->denormalizeReference($value);
+      }
+      elseif ($value instanceof DateTime) {
+        $value = new MongoDate($value->format('U'));
+      }
+      elseif (is_array($value)) {
+        $this->denormalizeArray($value);
+      }
+    }
+  }
+
   protected function normalizeReference(&$value)
+  {
+    if (MongoDBRef::isRef($value)) {
+      $class = $this->getClass($value['$ref']);
+      $value = $this
+        ->first($class, array(
+          '_id' => $value['$id']
+        ));
+    }
+  }
+
+  protected function denormalizeReference(&$value)
   {
     if ($value instanceof Core\Model) {
       $model = $value;
-      $model->save();
-      $value = MongoDBRef::create($this->collection($model), $this->mongoId($model));
-    }
-    elseif (MongoDBRef::isRef($value)) {
-      $class = $this->getClass($value['$ref']);
-      $value = $this->first($class, array(
-        '_id' => $value['$id']
-      ));
+      if (!$model->id) {
+        $model->save();
+      }
+      $ids = $this->mongoId($model);
+      $value = MongoDBRef::create($this->collection($model), array_shift($ids));
     }
   }
 
@@ -186,37 +228,65 @@ class MongoDB extends Datasource\Driver implements DriverInterface
   protected function mongoId(&$model, $mongoId = null)
   {
     $class = get_class($model);
-    if (!isset($this->mongoIds[$class])) {
-      $this->mongoIds[$class] = array();
-    }
     if (!$model->id) {
       $autoincrement = static::cfg('autoincrement.collection');
       $collection = $this->collection($class);
-      if (!$this->link->$autoincrement->find(array(
-        '_id' => $collection
-      ))->count()) {
-        $this->link->$autoincrement->insert(array(
-          '_id' => $collection,
-          'id' => 1
-        ));
-      }
-      $result = $this->link->command(array(
-        'findandmodify' => $autoincrement,
-        'query' => array(
+      if (!$this->link->$autoincrement
+        ->find(array(
           '_id' => $collection
-        ),
-        'update' => array(
-          '$inc' => array(
-            'id' => 1
-          )
-        )
-      ));
+        ))->count()) {
+        $this->link->$autoincrement
+          ->insert(
+            array(
+              '_id' => $collection, 'id' => 1
+            ));
+      }
+      $result = $this->link
+        ->command(
+          array(
+            'findandmodify' => $autoincrement,
+            'query' => array(
+              '_id' => $collection
+            ),
+            'update' => array(
+              '$inc' => array(
+                'id' => 1
+              )
+            )
+          ));
       $model->id = $result['value']['id'];
-      $this->mongoIds[$class][$model->id] = new MongoId();
+    }
+    if (!isset($this->mongoIds[$class])) {
+      $this->mongoIds[$class] = array();
     }
     if (!isset($this->mongoIds[$class][$model->id])) {
-      $this->mongoIds[$class][$model->id] = $mongoId;
+      $this->mongoIds[$class][$model->id] = array();
     }
-    return $this->mongoIds[$class][$model->id];
+    $mongoIds = array();
+    foreach ($class::cfg('extensions') as $extName => $ext) {
+      $_key = $ext['key'];
+      if ($key = $model->$_key) {
+        if ($key instanceof Core\Model) {
+          $key = $key->id;
+        }
+        if (!isset($this->mongoIds[$class][$model->id][$extName])) {
+          $this->mongoIds[$class][$model->id][$extName] = array();
+        }
+        if (!isset($this->mongoIds[$class][$model->id][$extName][$key])) {
+          $this->mongoIds[$class][$model->id][$extName][$key] = new MongoId(
+            $mongoId);
+        }
+        $mongoIds[] = $this->mongoIds[$class][$model->id][$extName][$key];
+      }
+    }
+    if (empty($mongoIds)) {
+      if (!isset($this->mongoIds[$class][$model->id]['default'])) {
+        $this->mongoIds[$class][$model->id]['default'] = array(
+          $model->id => new MongoId($mongoId)
+        );
+      }
+      $mongoIds[] = $this->mongoIds[$class][$model->id]['default'][$model->id];
+    }
+    return $mongoIds;
   }
 }
