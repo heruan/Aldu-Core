@@ -23,9 +23,14 @@ use Aldu\Core;
 abstract class Localized extends Core\Model
 {
   protected static $configuration = array(
+    'attributes' => array(
+      'locale' => array(
+        'type' => 'Aldu\Core\Locale\Models\Locale'
+      )
+    ),
     'extensions' => array(
       'localized' => array(
-        'ref' => 'Aldu\Core\Locale',
+        'ref' => 'Aldu\Core\Locale\Models\Locale',
         'key' => 'locale',
         'attributes' => array(
           'locale' => true

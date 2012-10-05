@@ -35,12 +35,15 @@ class Datasource extends Core\Stub
     }
     else {
       $parts = array_merge(array(
-          'scheme' => null
-        ), parse_url($url));
+        'scheme' => null
+      ), parse_url($url));
     }
     if (!isset(static::$drivers[$url])) {
       $scheme = $parts['scheme'];
       switch ($scheme) {
+      case 'mysql':
+        $driver = new Datasource\Driver\MySQL($url, $parts);
+        break;
       case 'sqlite':
         $driver = new Datasource\Driver\SQLite($url, $parts);
         break;
@@ -66,12 +69,14 @@ class Datasource extends Core\Stub
     unset($this->driver);
   }
 
-  public function save($models = array())
+  public function save(&$models = array())
   {
     if (!is_array($models)) {
-      $models = array($models);
+      $models = array(
+        $models
+      );
     }
-    foreach ($models as $model) {
+    foreach ($models as &$model) {
       $class = get_class($model);
       $cache = implode('::', array(
         $class
@@ -83,10 +88,11 @@ class Datasource extends Core\Stub
 
   public function first($class, $search = array())
   {
-    $cache = implode('::',
-      array(
-        $class, __METHOD__, md5(serialize(func_get_args()))
-      ));
+    $cache = implode('::', array(
+      $class,
+      __METHOD__,
+      md5(serialize(func_get_args()))
+    ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
       $result = $this->driver->first($class, $search);
       $this->cache->store($cache, $result);
@@ -96,10 +102,11 @@ class Datasource extends Core\Stub
 
   public function read($class, $search = array())
   {
-    $cache = implode('::',
-      array(
-        $class, __METHOD__, md5(serialize(func_get_args()))
-      ));
+    $cache = implode('::', array(
+      $class,
+      __METHOD__,
+      md5(serialize(func_get_args()))
+    ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
       $result = $this->driver->read($class, $search);
       $this->cache->store($cache, $result);

@@ -19,8 +19,10 @@
 
 namespace Aldu\Core\Model\Datasource\Driver;
 use Aldu\Core\Model\Datasource;
+use Aldu\Core\Utility\Inflector;
 use Aldu\Core\Exception;
 use Aldu\Core;
+use mysqli;
 use DateTime;
 
 class MySQL extends Datasource\Driver implements Datasource\DriverInterface
@@ -33,28 +35,26 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   public function __construct($url, $parts)
   {
     parent::__construct($url);
-    $conn = array_merge(
-      array(
-        'host' => 'localhost', 'port' => self::DEFAULT_PORT, 'user' => null,
-        'pass' => null, 'path' => null
-      ), $parts);
+    $conn = array_merge(array(
+      'host' => 'localhost',
+      'port' => self::DEFAULT_PORT,
+      'user' => null,
+      'pass' => null,
+      'path' => null
+    ), $parts);
     $this->database = ltrim($conn['path'], '/');
-    if (!$this->link = new mysqli($conn['host'], $conn['user'], $conn['pass'],
-      $this->database, $conn['port'])) {
+    if (!$this->link = new mysqli($conn['host'], $conn['user'], $conn['pass'], $this->database,
+      $conn['port'])) {
       throw new Exception('Cannot connect MySQL driver to ' . $conn['host']);
     }
     $this->query("SET NAMES 'utf8'");
     while (!$this->link->select_db($this->database)) {
-      if (!$this
-        ->query(
-          "CREATE DATABASE `%s` DEFAULT CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci'",
-          $this->database)) {
+      if (!$this->query("CREATE DATABASE `%s` DEFAULT CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci'", $this->database)) {
         throw new Exception($this->link->error);
       }
     }
     if (!$this->tableExists('_index')) {
-      $query = file_get_contents(
-        __DIR__ . DS . 'Mysql' . DS . 'create-index-table.sql');
+      $query = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-index-table.sql');
       $this->query($query);
     }
     $this->link->autocommit(false);
@@ -128,38 +128,45 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     return false;
   }
 
-  protected function createQuery($column, $class, $name = null, $type = null,
-    $max = null, $other = null)
+  protected function createQuery($class, $attribute, $column = null, $type = null)
   {
-    $classes = class_parents($class);
-    array_unshift($classes, $class);
-    foreach ($classes as $_class) {
-      if (property_exists($_class, 'references')
-        && isset($_class::$references[$column])) {
-        $reference = $_class::$references[$column];
-        list($refClass, $alias, $key) = explode('::', $reference)
-          + array(
-            null, 'name', 'id'
-          );
-        return $this->createQuery($key, $refClass, $column);
-      }
-      if (property_exists($_class, 'types') && isset($_class::$types[$column])) {
-        list($type, $max, $other) = explode(':', $_class::$types[$column])
-          + array(
-            null, null, null
-          );
-        if ($type) {
-          break;
-        }
-      }
+    if (!$type && ($type = $class::cfg("attributes.$attribute.type"))
+      && is_subclass_of($type, 'Aldu\Core\Model')) {
+      return $this->createQuery($type, 'id', $attribute, 'id');
     }
-    if ($name) {
-      $column = $name;
+    list($type, $max, $other) = explode(':', (string) $type) + array_fill(0, 3, null);
+    $column = $column ? : $attribute;
+    return $this->createType($column, $type, $max, $other);
+  }
+
+  protected function createType($column, $type = null, $max = null, $other = null)
+  {
+    switch ($type) {
+    case 'id':
+      return "`$column` INT unsigned NOT NULL,\n\t";
+    case 'int':
+      $max = $max ? : 11;
+      return "`$column` INT($max) $other DEFAULT NULL,\n\t";
+    case 'float':
+      return "`$column` FLOAT DEFAULT NULL,\n\t";
+    case 'text':
+      return $max ? "`$column` VARCHAR($max) DEFAULT NULL,\n\t" : "`$column` TEXT,\n\t";
+    case 'textarea':
+      return "`$column` TEXT,\n\t";
+    case 'date':
+      return "`$column` DATE DEFAULT NULL,\n\t";
+    case 'time':
+      return "`$column` TIME DEFAULT NULL,\n\t";
+    case 'datetime':
+      return "`$column` DATETIME DEFAULT NULL,\n\t";
+    case 'file':
+    case 'data':
+    case 'blob':
+      return "`$column` MEDIUMBLOB DEFAULT NULL,\n\t";
+    case 'bool':
+      return "`$column` TINYINT(1) DEFAULT NULL,\n\t";
     }
-    return $this
-      ->createType($column, array(
-        $type, $max, $other
-      ));
+    return "`$column` VARCHAR(128) DEFAULT NULL,\n\t";
   }
 
   protected function tablesFor($class)
@@ -174,60 +181,68 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $_table = $table . "$i";
       }
       $table = $_table;
-      $this
-        ->query("INSERT INTO `" . self::INDEX_TABLE . "` VALUES ('%s', '%s')",
-          $class, $table);
+      $this->query("INSERT INTO `" . self::INDEX_TABLE . "` VALUES ('%s', '%s')", $class, $table);
     }
-    $columns = get_public_vars($class);
-    // TODO array_diff multiple attributes
-    $queries = array();
-    $query = "CREATE TABLE IF NOT EXISTS `$table` (\n\t";
-    $query .= "`id` int unsigned NOT NULL AUTO_INCREMENT,\n\t";
-    $extensions = $keys = $fkeys = array();
-    foreach ($columns as $column) {
+    if (!$this->tableExists($table)) {
+      $columns = get_public_vars($class);
+      // TODO array_diff multiple attributes
+      $queries = array();
+      $query = "CREATE TABLE IF NOT EXISTS `$table` (\n\t";
+      $query .= "`id` INT unsigned NOT NULL AUTO_INCREMENT,\n\t";
+      $extensions = $keys = $fkeys = array();
       foreach ($class::cfg('extensions') as $extName => $ext) {
         $extensions[$extName]['ref'] = $this->tableName($ext['ref']);
         $extensions[$extName]['key'] = $ext['key'];
-        if (array_key_exists($column, $ext['attributes'])) {
-          $extensions[$extName][] = $this->createQuery($column, $class);
-          continue 2;
+        foreach (array_intersect_key($columns, $ext['attributes']) as $column => $default) {
+          $extensions[$extName][] = $this->createQuery($class, $column);
+          unset($columns[$column]);
         }
       }
-      if (($type = $class::cfg("attributes.$column.type"))
-        && is_subclass_of($type, 'Aldu\Core\Model')) {
-        $refTable = ($class === $type) ? $table : $this->tableName($type);
-        if ($table !== $refTable && !$this->tableExists($refTable)) {
-          $this->tablesFor($refClass);
+      foreach (array_keys($columns) as $column) {
+        if ($column === 'id') {
+          continue;
         }
-        $keys[] = "KEY `$column` (`$column`)";
-        $fkeys[] = "FOREIGN KEY (`$attribute`) REFERENCES `$refTable` (`id`) ON DELETE CASCADE ON UPDATE CASCADE";
+        if (($type = $class::cfg("attributes.$column.type"))
+          && is_subclass_of($type, 'Aldu\Core\Model')) {
+          $refTable = ($class === $type) ? $table : $this->tableName($type);
+          if ($table !== $refTable && !$this->tableExists($refTable)) {
+            $this->tablesFor($refClass);
+          }
+          $keys[] = "KEY `$column` (`$column`)";
+          $fkeys[] = "FOREIGN KEY (`$column`) REFERENCES `$refTable` (`id`) ON DELETE CASCADE ON UPDATE CASCADE";
+        }
+        $query .= $this->createQuery($class, $column);
       }
-      $query .= $this->createQuery($column, $class);
-    }
-    $query .= "PRIMARY KEY (`id`)";
-    $query .= ',\n\t' . implode(',\n\t', $keys) . '\n\t'
-      . implode(',\n\t', $fkeys);
-    $query .= "\n) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci";
-    $queries[] = $query;
-    // TODO multiple attributes? (see old Mysql.php)
-    foreach ($extensions as $extension => $_queries) {
-      $ref = array_shift($_queries);
-      $key = array_shift($_queries);
-      $query = "CREATE TABLE IF NOT EXISTS `{$class}-{$extension}` (\n\t";
-      $query .= "`id` int unsigned NOT NULL,\n\t";
-      foreach ($_queries as $_query) {
-        $query .= $_query;
+      $query .= "PRIMARY KEY (`id`)";
+      if ($keys) {
+        $query .= ",\n\t" . implode(",\n\t", $keys);
       }
-      $query .= "PRIMARY KEY (`id`,`$key`),\n\t";
-      $query .= "KEY `$key` (`$key`),\n\t";
-      $query .= "FOREIGN KEY (`id`) REFERENCES `$table` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n\t";
-      $query .= "FOREIGN KEY (`$key`) REFERENCES `$ref` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n";
-      $query .= ") ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci";
+      if ($fkeys) {
+        $query .= ",\n\t" . implode(",\n\t", $fkeys);
+      }
+      $query .= "\n) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci";
       $queries[] = $query;
+      // TODO multiple attributes? (see old Mysql.php)
+      foreach ($extensions as $extension => $_queries) {
+        $ref = array_shift($_queries);
+        $key = array_shift($_queries);
+        $query = "CREATE TABLE IF NOT EXISTS `{$table}-{$extension}` (\n\t";
+        $query .= "`id` INT unsigned NOT NULL,\n\t";
+        foreach ($_queries as $_query) {
+          $query .= $_query;
+        }
+        $query .= "PRIMARY KEY (`id`,`$key`),\n\t";
+        $query .= "KEY `$key` (`$key`),\n\t";
+        $query .= "FOREIGN KEY (`id`) REFERENCES `$table` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n\t";
+        $query .= "FOREIGN KEY (`$key`) REFERENCES `$ref` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n";
+        $query .= ") ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci";
+        $queries[] = $query;
+      }
+      foreach ($queries as $query) {
+        $this->query($query);
+      }
     }
-    foreach ($queries as $query) {
-      $this->query($query);
-    }
+    return $this->tables("{$table}%");
   }
 
   protected function tableName($class)
@@ -256,8 +271,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   public function nextId($class)
   {
     $table = $this->tableName($class);
-    $result = $this->link->query("SHOW TABLE STATUS LIKE '$table'")
-      ->fetch_array();
+    $result = $this->link->query("SHOW TABLE STATUS LIKE '$table'")->fetch_array();
     return isset($result['Auto_increment']) ? $result['Auto_increment'] : null;
   }
 
@@ -266,8 +280,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $class = get_class($model);
     if ($table = $this->tableName($class)) {
       if ($this->first($class, array(
-          'id' => $model->id
-        ))) {
+        'id' => $model->id
+      ))) {
         return true;
       }
     }
@@ -279,24 +293,29 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     ;
   }
 
+  protected function denormalizeArray(&$array)
+  {
+    foreach ($array as $attribute => &$value) {
+      if ($value instanceof Core\Model) {
+        if (!$value->id) {
+          $value->save();
+        }
+        $value = $value->id;
+      }
+      elseif ($value instanceof DateTime) {
+        $value = $value->format(self::DATETIME_FORMAT);
+      }
+      elseif (is_array($value)) {
+        $this->denormalizeArray($value);
+      }
+    }
+  }
+
   public function save(&$model)
   {
     $fields = array();
     $class = get_class($model);
     $tables = $this->tablesFor($class);
-    foreach ($model->__toArray() as $attribute => $value) {
-      if (is_object($value)) {
-        if (!$value->id) {
-          $value->save();
-        }
-        $fields[$attribute] = $value->id;
-      }
-      elseif (is_array($value)) {
-      }
-      else {
-        $fields[$attribute] = $value;
-      }
-    }
     try {
       if (!$model->id) {
         $model->created = new DateTime();
@@ -304,13 +323,17 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       else {
         $model->updated = new DateTime();
       }
+      $fields = $model->__toArray();
+      $this->denormalizeArray($fields);
       foreach ($tables as $table) {
-        $values = array_intersect_key($fields, $this->fields($table));
+        $values = array_intersect_key($fields, array_flip($this->columns($table)));
         $columns = array_keys($values);
         $placeholders = array();
+        $update = array();
         foreach ($values as $column => &$value) {
           if (!trim($value)) {
             $placeholders[] = "NULL";
+            unset($values[$column]);
           }
           else {
             if ($value instanceof DateTime) {
@@ -326,16 +349,16 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
           }
           $update[] = "`$column` = VALUES(`$column`)";
         }
-        $query = "INSERT INTO `$table` (`" . implode('`, `', $columns)
-          . "`) VALUES ";
-        $query .= "(" . implode(', ', $placeholders)
-          . ") ON DUPLICATE KEY UPDATE " . implode(', ', $update);
+        $query = "INSERT INTO `$table` (`" . implode('`, `', $columns) . "`) VALUES ";
+        $query .= "(" . implode(', ', $placeholders) . ") ON DUPLICATE KEY UPDATE "
+          . implode(', ', $update);
         $this->query($query, $values);
         if (!$model->id) {
-          $model->id = $this->link_insert_id;
+          $model->id = $fields['id'] = $this->link->insert_id;
         }
       }
-    } catch (Exception $e) {
+    }
+    catch (Exception $e) {
       $this->link->rollback();
       Core::log($e->getMessage(), LOG_ERR);
       return false;
@@ -347,8 +370,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   {
     $class = get_class($model);
     if ($table = $this->tableName($class)) {
-      return $this
-        ->query("DELETE FROM `%s` WHERE `id` = %s", $table, $model->id);
+      return $this->query("DELETE FROM `%s` WHERE `id` = %s", $table, $model->id);
     }
     return false;
   }
@@ -364,4 +386,65 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $this->delete($model);
     }
   }
+
+  /**
+   * Create a revision table based to original table.
+   *
+   * @param string $table
+   * @param array  $info   Table information
+   */
+
+  protected function createRevisionTable($table, $info)
+  {
+    $pk = '`' . join('`, `', $info['primarykey']) . '`';
+    $change_autoinc = $info['autoinc'] ? "CHANGE `{$info['autoinc']}` `{$info['autoinc']}` {$info['fieldtypes'][$info['autoinc']]},"
+      : null;
+
+    $unique_index = "";
+    foreach ($info['unique'] as $key => $rows) {
+      $unique_index .= ", DROP INDEX `$key`, ADD INDEX `$key` ($rows)";
+    }
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-table.sql');
+    $this->query($sql, $table, $change_autoinc, $unique_index);
+    $this->query("INSERT INTO `_revision_$table` SELECT *, NULL, NULL, 'INSERT', NULL, NOW(), 'Revisioning initialisation' FROM `$table`");
+  }
+
+  /**
+   * Create a revision table based to original table.
+   *
+   * @param string $table
+   * @param array  $info   Table information
+   */
+  protected function createRevisionChildTable($table, $info)
+  {
+    if (!empty($info['primarykey'])) $pk = '`' . join('`, `', $info['primarykey']) . '`';
+    $change_autoinc = !empty($info['autoinc']) ? "CHANGE `{$info['autoinc']}` `{$info['autoinc']}` {$info['fieldtypes'][$info['autoinc']]}," : null;
+
+    $unique_index = "";
+    foreach ($info['unique'] as $key=>$rows) $unique_index .= "DROP INDEX `$key`, ADD INDEX `$key` ($rows),";
+
+    $this->query("CREATE TABLE `_revision_$table` LIKE `$table`");
+    if (isset($pk)) {
+      $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-child-table-1.sql');
+      $this->query($sql, $table, $change_autoinc, $pk, $unique_index, $info['parent']);
+    }
+    else {
+      $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-child-table-2.sql');
+      $this->query($sql, $table, $unique_index, $info['parent']);
+    }
+    $this->query("INSERT INTO `_revision_$table` SELECT `t`.*, `p`.`_revision` FROM `$table` AS `t` INNER JOIN `{$info['parent']}` AS `p` ON `t`.`{$info['foreign_key']}`=`p`.`{$info['parent_key']}`");
+    }
+
+    /**
+     * Alter the existing table.
+     *
+     * @param string $table
+     * @param array  $info   Table information
+     */
+    protected function alterTable($table, $info)
+    {
+      foreach ($info['primarykey'] as $field) $pk_join[] = "`t`.`$field` = `r`.`$field`";
+      $pk_join = join(' AND ', $pk_join);
+
+
 }
