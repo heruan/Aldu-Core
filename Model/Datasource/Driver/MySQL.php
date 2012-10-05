@@ -30,6 +30,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   const DEFAULT_PORT = 3306;
   const DATETIME_FORMAT = 'Y-m-d H:i:s';
   const INDEX_TABLE = '_index';
+  protected static $configuration = array(
+    'revisions' => true
+  );
   protected $database;
 
   public function __construct($url, $parts)
@@ -81,6 +84,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       }
       $query = vsprintf($query, $args);
     }
+    echo $query;
     $result = $this->link->query($query);
     if (is_bool($result)) {
       $cache = $result;
@@ -134,7 +138,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       && is_subclass_of($type, 'Aldu\Core\Model')) {
       return $this->createQuery($type, 'id', $attribute, 'id');
     }
-    list($type, $max, $other) = explode(':', (string) $type) + array_fill(0, 3, null);
+    if (is_array($type) && empty($type)) $type = '';
+    list($type, $max, $other) = explode(':', $type) + array_fill(0, 3, null);
     $column = $column ? : $attribute;
     return $this->createType($column, $type, $max, $other);
   }
@@ -241,6 +246,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       foreach ($queries as $query) {
         $this->query($query);
       }
+    }
+    if (static::cfg('revisions') && !$this->tableExists("_rev-$table")) {
+      $this->createRevisionsTables($table);
     }
     return $this->tables("{$table}%");
   }
@@ -387,6 +395,14 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     }
   }
 
+  protected function createRevisionsTables($table)
+  {
+    $this->createRevisionsTable($table);
+    foreach ($this->tables("$table-%") as $extTable) {
+      $this->createRevisionsTableExt($extTable, $table);
+    }
+  }
+  
   /**
    * Create a revision table based to original table.
    *
@@ -394,19 +410,12 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
    * @param array  $info   Table information
    */
 
-  protected function createRevisionTable($table, $info)
+  protected function createRevisionsTable($table)
   {
-    $pk = '`' . join('`, `', $info['primarykey']) . '`';
-    $change_autoinc = $info['autoinc'] ? "CHANGE `{$info['autoinc']}` `{$info['autoinc']}` {$info['fieldtypes'][$info['autoinc']]},"
-      : null;
-
-    $unique_index = "";
-    foreach ($info['unique'] as $key => $rows) {
-      $unique_index .= ", DROP INDEX `$key`, ADD INDEX `$key` ($rows)";
+    foreach (explode('##', file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-table.sql')) as $sql) {
+      $this->query($sql, $table);
     }
-    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-table.sql');
-    $this->query($sql, $table, $change_autoinc, $unique_index);
-    $this->query("INSERT INTO `_revision_$table` SELECT *, NULL, NULL, 'INSERT', NULL, NOW(), 'Revisioning initialisation' FROM `$table`");
+    $this->query("INSERT INTO `_rev-$table` SELECT *, NULL, 'INSERT', NOW() FROM `$table`");
   }
 
   /**
@@ -415,36 +424,10 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
    * @param string $table
    * @param array  $info   Table information
    */
-  protected function createRevisionChildTable($table, $info)
+  protected function createRevisionsTableExt($table, $parent)
   {
-    if (!empty($info['primarykey'])) $pk = '`' . join('`, `', $info['primarykey']) . '`';
-    $change_autoinc = !empty($info['autoinc']) ? "CHANGE `{$info['autoinc']}` `{$info['autoinc']}` {$info['fieldtypes'][$info['autoinc']]}," : null;
-
-    $unique_index = "";
-    foreach ($info['unique'] as $key=>$rows) $unique_index .= "DROP INDEX `$key`, ADD INDEX `$key` ($rows),";
-
-    $this->query("CREATE TABLE `_revision_$table` LIKE `$table`");
-    if (isset($pk)) {
-      $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-child-table-1.sql');
-      $this->query($sql, $table, $change_autoinc, $pk, $unique_index, $info['parent']);
-    }
-    else {
-      $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-child-table-2.sql');
-      $this->query($sql, $table, $unique_index, $info['parent']);
-    }
-    $this->query("INSERT INTO `_revision_$table` SELECT `t`.*, `p`.`_revision` FROM `$table` AS `t` INNER JOIN `{$info['parent']}` AS `p` ON `t`.`{$info['foreign_key']}`=`p`.`{$info['parent_key']}`");
-    }
-
-    /**
-     * Alter the existing table.
-     *
-     * @param string $table
-     * @param array  $info   Table information
-     */
-    protected function alterTable($table, $info)
-    {
-      foreach ($info['primarykey'] as $field) $pk_join[] = "`t`.`$field` = `r`.`$field`";
-      $pk_join = join(' AND ', $pk_join);
-
-
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-table-ext.sql');
+    $this->query($sql, $table, $key, $parent);
+    $this->query("INSERT INTO `_rev-$table` SELECT `t`.*, `p`.`_revision` FROM `$table` AS `t` INNER JOIN `$parent` AS `p` ON `t`.`id`=`p`.`id`");
+  }
 }
