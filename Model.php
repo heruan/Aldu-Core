@@ -40,7 +40,9 @@ class Model extends Stub
     )
   );
   protected static $datasources = array();
-  public static $references = array(); // FIXME public to protected
+  protected static $relations = array(
+    'Aldu\Core\Model' => true
+  );
   protected static $attributes = array(
     'created' => array(
       'type' => 'datetime'
@@ -58,6 +60,7 @@ class Model extends Stub
   protected static function configure($configuration = array())
   {
     $configuration['attributes'] = static::$attributes;
+    $configuration['relations'] = static::$relations;
     return array_replace_recursive(parent::configure(), $configuration);
   }
 
@@ -94,16 +97,25 @@ class Model extends Stub
     return self::$datasources[get_class($this)]->save($models);
   }
 
-  public static function first($search = array())
+  public static function count($search = array(), $options = array())
   {
     $class = get_called_class();
     if (!isset(self::$datasources[$class])) {
       self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
     }
-    return self::$datasources[$class]->first($class, $search);
+    return self::$datasources[$class]->count($class, $search, $options);
   }
 
-  public static function read($search = array())
+  public static function first($search = array(), $options = array())
+  {
+    $class = get_called_class();
+    if (!isset(self::$datasources[$class])) {
+      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
+    }
+    return self::$datasources[$class]->first($class, $search, $options);
+  }
+
+  public static function read($search = array(), $options = array())
   {
     $class = get_called_class();
     if (!isset(self::$datasources[$class])) {
@@ -112,13 +124,13 @@ class Model extends Stub
     return self::$datasources[$class]->read($class, $search);
   }
 
-  public static function purge($search = array())
+  public static function purge($search = array(), $options = array())
   {
     $class = get_called_class();
     if (!isset(self::$datasources[$class])) {
       self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
     }
-    return self::$datasources[$class]->purge($class, $search);
+    return self::$datasources[$class]->purge($class, $search, $options);
   }
 
   public function name()

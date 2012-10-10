@@ -86,21 +86,21 @@ class Datasource extends Core\Stub
     }
   }
 
-  public function first($class, $search = array())
+  public function count($class, $search = array(), $options = array())
   {
     $cache = implode('::', array(
       $class,
-      __METHOD__,
-      md5(serialize(func_get_args()))
+    __METHOD__,
+    md5(serialize(func_get_args()))
     ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
-      $result = $this->driver->first($class, $search);
+      $result = $this->driver->count($class, $search, $options);
       $this->cache->store($cache, $result);
     }
     return $result;
   }
 
-  public function read($class, $search = array())
+  public function first($class, $search = array(), $options = array())
   {
     $cache = implode('::', array(
       $class,
@@ -108,7 +108,21 @@ class Datasource extends Core\Stub
       md5(serialize(func_get_args()))
     ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
-      $result = $this->driver->read($class, $search);
+      $result = $this->driver->first($class, $search, $options);
+      $this->cache->store($cache, $result);
+    }
+    return $result;
+  }
+
+  public function read($class, $search = array(), $options = array())
+  {
+    $cache = implode('::', array(
+      $class,
+      __METHOD__,
+      md5(serialize(func_get_args()))
+    ));
+    if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
+      $result = $this->driver->read($class, $search, $options);
       $this->cache->store($cache, $result);
     }
     return $result;
@@ -127,12 +141,12 @@ class Datasource extends Core\Stub
     return $this->driver->delete($model);
   }
 
-  public function purge($class, $search = array())
+  public function purge($class, $search = array(), $options = array())
   {
     $cache = implode('::', array(
       $class
     ));
     $this->cache->delete($cache);
-    return $this->driver->purge($class, $search);
+    return $this->driver->purge($class, $search, $options);
   }
 }

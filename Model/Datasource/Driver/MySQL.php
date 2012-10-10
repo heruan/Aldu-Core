@@ -72,6 +72,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 
   protected function query()
   {
+    $debug = static::cfg('debug.all');
     $args = func_get_args();
     $query = array_shift($args);
     $rows = array();
@@ -79,12 +80,17 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $args = array_shift($args);
     }
     if (!empty($args)) {
+      if (is_bool(end($args))) {
+        $debug = array_pop($args);
+      }
       foreach ($args as &$arg) {
         $arg = $this->link->real_escape_string($arg);
       }
       $query = vsprintf($query, $args);
     }
-    echo $query;
+    if ($debug) {
+      echo $query . "\n";
+    }
     $result = $this->link->query($query);
     if (is_bool($result)) {
       $cache = $result;
@@ -100,10 +106,53 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 
   }
 
+  protected function describe($table)
+  {
+    $describe = $this->query("DESCRIBE `%s`", $table);
+    $keys = array(
+      'primary' => array(),
+      'unique' => array(),
+      'indexes' => array()
+    );
+    $fields = array();
+    foreach ($describe as $field) {
+      $fields[$field['Field']] = array(
+        'type' => $field['Type'],
+        'null' => $field['Null'] === 'YES' ? true : false,
+        'default' => $field['Default'],
+        'extra' => $field['Extra']
+      );
+      switch ($field['Key']) {
+      case 'PRI':
+        $keys['primary'][] = $field['Field'];
+        break;
+      case 'UNI':
+        $keys['unique'][] = $field['Field'];
+        break;
+      case 'IND':
+        $keys['indexes'][] = $field['Field'];
+        break;
+      }
+    }
+    return array(
+      'fields' => $fields,
+      'keys' => $keys
+    );
+  }
+
   protected function type($table, $column)
   {
-    $describe = $this->query("DESCRIBE `%s` `%s`", $table, $column);
-    return array_shift($describe);
+    $describe = $this->describe($table);
+    return $describe['fields'][$column]['type'];
+  }
+
+  protected function keys($table, $primaryOnly = true)
+  {
+    $describe = $this->describe($table);
+    if ($primaryOnly) {
+      return $describe['keys']['primary'];
+    }
+    return $describe;
   }
 
   protected function columns($table)
@@ -138,7 +187,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       && is_subclass_of($type, 'Aldu\Core\Model')) {
       return $this->createQuery($type, 'id', $attribute, 'id');
     }
-    if (is_array($type) && empty($type)) $type = '';
+    if (is_array($type) && empty($type))
+      $type = '';
     list($type, $max, $other) = explode(':', $type) + array_fill(0, 3, null);
     $column = $column ? : $attribute;
     return $this->createType($column, $type, $max, $other);
@@ -250,6 +300,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     if (static::cfg('revisions') && !$this->tableExists("_rev-$table")) {
       $this->createRevisionsTables($table);
     }
+
     return $this->tables("{$table}%");
   }
 
@@ -296,11 +347,6 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     return false;
   }
 
-  public function count($class, $search = array(), $options = array())
-  {
-    ;
-  }
-
   protected function denormalizeArray(&$array)
   {
     foreach ($array as $attribute => &$value) {
@@ -317,6 +363,238 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $this->denormalizeArray($value);
       }
     }
+  }
+
+  protected function normalizeRow($class, &$row)
+  {
+    $table = $this->tableName($class);
+    foreach ($row as $field => &$value) {
+      if (($type = $class::cfg("attributes.$field.type"))
+        && is_subclass_of($type, 'Aldu\Core\Model')) {
+        $value = $type::first(array(
+          'id' => $value
+        ));
+      }
+    }
+  }
+
+  protected function tagsTable($class, $tag = null)
+  {
+    $table = $this->tableName($class);
+    $tagsTable = $tag ? $this->tableName($tag) : '%';
+    return "_tags-$table-$tagsTable";
+  }
+
+  protected function conditions($class, $search = array(), $op = '=', $logic = null)
+  {
+    $where = array();
+    foreach ($search as $attribute => $value) {
+      switch ($attribute) {
+      case '$has':
+        $tags = array_shift($value);
+        $intersect = array();
+        foreach ($tags as $tag) {
+          $tagTable = $this->tagsTable($class, $tag);
+          if (!$tag->id || !$this->tableExists($tagTable)) {
+            return '0';
+          }
+          $tagsQuery = "SELECT `model` AS `id` FROM `$tagTable` WHERE `tag` = {$tag->id}";
+          $intersect[] = "($tagsQuery)";
+        }
+        if ($intersect) {
+          $where[] = "`id` IN " . implode(" AND `id` IN ", $intersect);
+        }
+        continue 2;
+      case '$and':
+      case '$or':
+        $merge = array();
+        foreach ($value as $v) {
+          $merge = array_merge_recursive($merge, $v);
+        }
+        $where[] = $this->conditions($class, $merge, $op, $attribute);
+        continue 2;
+      }
+      $attribute = $this->link->real_escape_string($attribute);
+      if (is_array($value)) {
+        foreach ($value as $k => $v) {
+          switch ((string) $k) {
+          case '$lt':
+          case '<':
+            $op = '<';
+            break;
+          case '$lte':
+          case '<=':
+            $op = '<=';
+            break;
+          case '$gt':
+          case '>':
+            $op = '>';
+            break;
+          case '$gte':
+          case '>=':
+            $op = '>=';
+            break;
+          case '$in':
+            $where[] = $this->conditions($class, array(
+              $attribute => $v
+            ), '=', '$or');
+            continue 2;
+          case '$nin':
+            $where[] = $this->conditions($class, array(
+              $attribute => $v
+            ), '!=', '$and');
+            continue 2;
+          case '$all':
+            $where[] = $this->conditions($class, array(
+              $attribute => $v
+            ), $op, '$and');
+            continue 2;
+          case '$mod':
+            $op = "% {$v[0]} = ";
+            $v = $v[1];
+            break;
+          case '$ne':
+          case '<>':
+          case '!=':
+            $op = '!=';
+            break;
+          case '$regex':
+            $op = 'REGEXP';
+            break;
+          }
+          if ($v instanceof Core\Model) {
+            if (!$v->id) {
+              $v->save();
+            }
+            $v = $v->id;
+          }
+          elseif ($v instanceof DateTime) {
+            $v = $v->format(self::DATETIME_FORMAT);
+          }
+          elseif ($this->isRegex($v)) {
+            $op = 'REGEXP';
+            $v = trim($v, $v[0]);
+          }
+          $op = is_null($v) ? 'IS' : $op;
+          $v = is_null($v) ? 'NULL' : "'{$this->link->real_escape_string($v)}'";
+          $where[] = "`$attribute` $op $v";
+        }
+      }
+      else {
+        $logic = '$and';
+        $where[] = $this->conditions($class, array(
+          $attribute => array(
+            $value
+          )
+        ), $op);
+      }
+    }
+    switch ($logic) {
+    case '$and':
+      $logic = 'AND';
+      break;
+    case '$or':
+    default:
+      $logic = 'OR';
+    }
+    return implode(" $logic ", $where) ? : '1';
+  }
+
+  protected function options($options = array())
+  {
+    $return = array();
+    foreach ($options as $option => $value) {
+      switch ($option) {
+      case 'group':
+        $return[0] = "GROUP BY " . $this->link->real_escape_string($value);
+        break;
+      case 'order':
+      case 'sort':
+        $sort = array();
+        if (!is_array($value)) {
+          $value = array(
+            $value => 1
+          );
+        }
+        foreach ($value as $k => $s) {
+          if (is_numeric($k)) {
+            $k = $s;
+            $s = 1;
+          }
+          $k = $this->link->real_escape_string($k);
+          $d = $s > 0 ? 'ASC' : 'DESC';
+          $sort[] = "`$k` $d";
+        }
+        $return[1] = $sort ? "ORDER BY " . implode(', ', $sort) : '';
+        break;
+      case 'limit':
+        if ($value < 0) {
+          $value = '18446744073709551615';
+        }
+        $return[2] = "LIMIT " . $this->link->real_escape_string($value);
+        break;
+      case 'offset':
+      case 'skip':
+        $limit = isset($options['limit']) ? '' : "LIMIT 18446744073709551615";
+        $return[3] = "$limit OFFSET " . $this->link->real_escape_string($value);
+        break;
+      }
+    }
+    ksort($return);
+    return implode(' ', $return);
+  }
+
+  protected function select($class, $search = array(), $options = array())
+  {
+    $table = $this->tableName($class);
+    if (!$this->tableExists($table)) {
+      return $models;
+    }
+    $tables = $this->tables("$table-%");
+    $join = array();
+    foreach ($tables as $extension) {
+      $join[] = "LEFT OUTER JOIN `$extension` USING (`id`)";
+    }
+    $join = implode(' ', $join);
+    $where = $this->conditions($class, $search);
+    $options = $this->options($options);
+    $query = "SELECT * FROM `$table` $join WHERE $where $options";
+    if (static::cfg('debug.read')) {
+      static::cfg('debug.all', true);
+    }
+    $select = $this->query($query);
+    if (static::cfg('debug.read')) {
+      static::cfg('debug.all', false);
+    }
+    return $select;
+  }
+
+  public function read($class, $search = array(), $options = array())
+  {
+    $models = array();
+    if (!$select = $this->select($class, $search, $options)) {
+      return $models;
+    }
+    foreach ($select as &$row) {
+      $this->normalizeRow($class, $row);
+      $this->normalizeAttributes($class, $row);
+      $model = new $class($row);
+      $models[] = $model;
+    }
+    return $models;
+  }
+
+  public function first($class, $search = array(), $options = array())
+  {
+    $options['limit'] = 1;
+    $read = $this->read($class, $search, $options);
+    return array_shift($read);
+  }
+
+  public function count($class, $search = array(), $options = array())
+  {
+    $select = $this->select($class, $search, $options);
+    return count($select);
   }
 
   public function save(&$model)
@@ -395,24 +673,37 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     }
   }
 
+  public function restore($model, $revision = null)
+  {
+    $revision = $revision ? : ($this->nextId($model) - 2);
+    $table = $this->tableName($model);
+    $query = "INSERT INTO `%s` SET `id` = %s, `_revision` = %s ON DUPLICATE KEY UPDATE `_revision` = VALUES (`_revision`)";
+    $this->query($query, $table, $model->id, $revision);
+  }
+
   protected function createRevisionsTables($table)
   {
     $this->createRevisionsTable($table);
     foreach ($this->tables("$table-%") as $extTable) {
       $this->createRevisionsTableExt($extTable, $table);
     }
+    $this->createTriggerBeforeInsert($table);
+    $this->createTriggerAfterInsert($table);
+    $this->createTriggerBeforeUpdate($table);
+    $this->createTriggerAfterUpdate($table);
+    $this->createTriggerAfterDelete($table);
   }
-  
+
   /**
    * Create a revision table based to original table.
    *
    * @param string $table
-   * @param array  $info   Table information
    */
 
   protected function createRevisionsTable($table)
   {
-    foreach (explode('##', file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-table.sql')) as $sql) {
+    foreach (explode('##', file_get_contents(__DIR__ . DS . 'MySQL' . DS
+      . 'create-revision-table.sql')) as $sql) {
       $this->query($sql, $table);
     }
     $this->query("INSERT INTO `_rev-$table` SELECT *, NULL, 'INSERT', NOW() FROM `$table`");
@@ -422,12 +713,104 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
    * Create a revision table based to original table.
    *
    * @param string $table
-   * @param array  $info   Table information
+   * @param string $parent
    */
+
   protected function createRevisionsTableExt($table, $parent)
   {
-    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-table-ext.sql');
-    $this->query($sql, $table, $key, $parent);
+    $key = implode('`, `', $this->keys($table));
+    foreach (explode('##', file_get_contents(__DIR__ . DS . 'MySQL' . DS
+      . 'create-revision-table-ext.sql')) as $sql) {
+      $this->query($sql, $table, $key, $parent);
+    }
     $this->query("INSERT INTO `_rev-$table` SELECT `t`.*, `p`.`_revision` FROM `$table` AS `t` INNER JOIN `$parent` AS `p` ON `t`.`id`=`p`.`id`");
+  }
+
+  protected function createTriggerBeforeInsert($table)
+  {
+    $columns = $this->columns($table);
+    $fields = implode('`, `', $columns);
+    ;
+    $varFields = implode('`, `var-', $columns);
+    foreach ($columns as $field) {
+      $declare[] = "DECLARE `var-$field` " . $this->type($table, $field);
+      $new[] = "NEW.`$field` = `var-$field`";
+    }
+    $declare = implode(";\n    ", $declare);
+    $new = implode(', ', $new);
+    /*
+    foreach ($this->keys($table) as $field) {
+      $pk[] = "(NEW.`$field` != OLD.`$field` OR NEW.`$field` IS NULL != OLD.`$field` IS NULL)";
+      $pk = implode(' OR ', $pk);
+    }
+     */
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS
+      . 'create-revision-trigger-before-insert.sql');
+    $this->query("DROP TRIGGER IF EXISTS `$table-beforeinsert`");
+    $this->query("DELMITER //");
+    $this->query(sprintf($sql, $table, $declare, $fields, $varFields, $new));
+    $this->query("DELIMITER ;");
+  }
+
+  protected function createTriggerBeforeUpdate($table)
+  {
+    $columns = $this->columns($table);
+    $fields = implode('`, `', $columns);
+    ;
+    $varFields = implode('`, `var-', $columns);
+    foreach ($columns as $field) {
+      $declare[] = "DECLARE `var-$field` " . $this->type($table, $field);
+      $new[] = "NEW.`$field` = `var-$field`";
+    }
+    $declare = implode(";\n    ", $declare);
+    $new = implode(', ', $new);
+    /*
+    foreach ($this->keys($table) as $field) {
+      $pk[] = "(NEW.`$field` != OLD.`$field` OR NEW.`$field` IS NULL != OLD.`$field` IS NULL)";
+      $pk = implode(' OR ', $pk);
+    }
+     */
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS
+      . 'create-revision-trigger-before-update.sql');
+    $this->query("DROP TRIGGER IF EXISTS `$table-beforeupdate`");
+    $this->query("DELMITER //");
+    $this->query(sprintf($sql, $table, $declare, $fields, $varFields, $new));
+    $this->query("DELIMITER ;");
+  }
+
+  protected function createTriggerAfterInsert($table)
+  {
+    $this->createTriggerAfterAction($table, 'insert');
+  }
+
+  protected function createTriggerAfterUpdate($table)
+  {
+    $this->createTriggerAfterAction($table, 'update');
+  }
+
+  protected function createTriggerAfterAction($table, $action)
+  {
+    $key = implode('`, NEW.`', $this->keys($table));
+    foreach ($this->columns($table) as $field) {
+      $fields[] = "`$field` = NEW.`$field`";
+    }
+    $fields = implode(', ', $fields);
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS
+      . 'create-revision-trigger-after-action.sql');
+    $this->query("DROP TRIGGER IF EXISTS `$table-after$action`");
+    $this->query("DELMITER //");
+    $this->query($sql, $table, $action, $fields, $key);
+    $this->query("DELIMITER ;");
+  }
+
+  protected function createTriggerAfterDelete($table)
+  {
+    $pk = implode('`, OLD.`', $this->keys($table));
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS
+      . 'create-revision-trigger-after-delete.sql');
+    $this->query("DROP TRIGGER IF EXISTS `$table-afterdelete`");
+    $this->query("DELMITER //");
+    $this->query($sql, $table, $pk);
+    $this->query("DELIMITER ;");
   }
 }

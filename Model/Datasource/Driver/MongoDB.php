@@ -121,18 +121,11 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     }
   }
 
-  public function first($class, $search = array())
+  public function first($class, $search = array(), $options = array())
   {
-    $collection = $this->collection($class);
-    $this->denormalizeSearch($search);
-    if ($doc = $this->link->$collection->findOne($search)) {
-      $this->normalizeArray($doc);
-      $this->normalizeAttributes($class, $doc);
-      $model = new $class($doc);
-      $this->mongoId($model, $doc['_id']);
-      return $model;
-    }
-    return $doc;
+    $options['limit'] = 1;
+    $read = $this->read($class, $search, $options);
+    return array_shift($read);
   }
 
   public function read($class, $search = array(), $options = array())

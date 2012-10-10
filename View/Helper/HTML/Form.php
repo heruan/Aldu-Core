@@ -164,8 +164,8 @@ class Form extends Helper\HTML
     extract($_);
     $modelClass = $this->model ? get_class($this->model) : null;
     if ($modelClass && ($value === false || $value === 'false')
-      && isset($modelClass::$references[$name])) {
-      $referenceClass = $modelClass::$references[$name];
+      && is_subclass_of($modelClass::cfg("attributes.$name.type"), 'Aldu\Core\Model')) {
+      $referenceClass = $modelClass::cfg("attributes.$name.type");
       $referenceIndex = isset($this->indexes[$referenceClass]) ? $this->indexes[$referenceClass] : 0;
       $value = $referenceClass . ':' . $referenceIndex;
     }

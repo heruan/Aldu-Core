@@ -31,13 +31,19 @@ class Driver extends Core\Stub implements DriverInterface
     $this->url = $url;
   }
 
+  protected function isRegex($string)
+  {
+    return (is_string($string) && preg_match('/[^a-z0-9\s]/i', $string[0]) && $string[0] === substr($string, -1)
+      && preg_match($string, '') !== false);
+  }
+
   protected function normalizeAttributes($class, &$attributes)
   {
     foreach ($attributes as $attribute => &$value) {
       $this->normalizeAttribute($class, $attribute, $value);
     }
   }
-  
+
   protected function normalizeAttribute($class, $attribute, &$value)
   {
     if (is_array($value)) {

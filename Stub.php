@@ -126,7 +126,7 @@ abstract class Stub
    * @param string $key
    * @param mixed $value
    */
-  public static function cfg($key = null, $value = null)
+  public static function cfg($key = null, $value = null, $null = false)
   {
     $config = array();
     $self = get_called_class();
@@ -137,7 +137,7 @@ abstract class Stub
     if (is_array($key)) {
       return self::$_configurations[$self] = array_replace_recursive(self::$_configurations[$self], $key);
     }
-    if ($value) {
+    if (!is_null($value) || $null) {
       self::$_configurations[$self] = array_replace_recursive(
         self::$_configurations[$self],
         Utility\Parser\Ini::parse(array(
