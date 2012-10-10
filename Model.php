@@ -41,9 +41,21 @@ class Model extends Stub
   );
   protected static $datasources = array();
   protected static $relations = array(
-    'Aldu\Core\Model' => true
+    'has' => array(
+      'Aldu\Core\Model' => array(
+        'weight' => array(
+          'type' => 'int',
+          'default' => 0
+        )
+      )
+    )
   );
   protected static $attributes = array(
+    'id' => array(
+      'type' => 'int',
+      'null' => false,
+      'other' => 'unsigned'
+    ),
     'created' => array(
       'type' => 'datetime'
     ),
@@ -57,6 +69,12 @@ class Model extends Stub
   public $created;
   public $updated;
 
+  /**
+   * 
+   * Enter description here ...
+   * @param unknown_type $configuration
+   * @deprecated
+   */
   protected static function configure($configuration = array())
   {
     $configuration['attributes'] = static::$attributes;
@@ -69,6 +87,7 @@ class Model extends Stub
     parent::__construct();
     $class = get_class($this);
     $class::cfg(array('attributes' => $class::$attributes));
+    $class::cfg(array('relations' => $class::$relations));
     if (!isset(self::$datasources[$class])) {
       self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
     }
@@ -89,6 +108,19 @@ class Model extends Stub
     return $array;
   }
 
+  public function tag($tags, $relation = array())
+  {
+    if (!is_array($tags)) {
+      $tags = array($tags);
+    }
+    return self::$datasources[get_class($this)]->tag($this, $tags, $relation);
+  }
+  
+  public function has($tag = null, $relation = array(), $search = array(), $options = array())
+  {
+    return self::$datasources[get_class($this)]->has($this, $tag, $relation, $search, $options);
+  }
+  
   public function save($models = array())
   {
     if (empty($models)) {
@@ -121,7 +153,7 @@ class Model extends Stub
     if (!isset(self::$datasources[$class])) {
       self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
     }
-    return self::$datasources[$class]->read($class, $search);
+    return self::$datasources[$class]->read($class, $search, $options);
   }
 
   public static function purge($search = array(), $options = array())

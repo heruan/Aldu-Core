@@ -149,4 +149,34 @@ class Datasource extends Core\Stub
     $this->cache->delete($cache);
     return $this->driver->purge($class, $search, $options);
   }
+  
+  public function tag($model, $tags = array(), $relation = array())
+  {
+    if (!is_array($tags)) {
+      $tags = array($tags);
+    }
+    $class = get_class($model);
+    $cache = implode('::', array(
+      $class,
+      'tags'
+    ));
+    $this->cache->delete($cache);
+    return $this->driver->tag($model, $tags, $relation);
+  }
+  
+  public function has($model, $tag = null, $relation = array(), $search = array(), $options = array())
+  {
+    $class = get_class($model);
+    $cache = implode('::', array(
+      $class,
+      'tags',
+      __METHOD__,
+      md5(serialize(func_get_args()))
+    ));
+    if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
+      $result = $this->driver->has($model, $tag, $relation, $search, $options);
+      $this->cache->store($cache, $result);
+    }
+    return $result;
+  }
 }
