@@ -450,7 +450,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     return "_tags-$table-$hasTable";
   }
 
-  protected function conditions($search = array(), $op = '=', $logic = '$and')
+  protected function conditions($search = array(), $class = null, $op = '=',
+    $logic = '$and')
   {
     $where = array();
     $and = array();
@@ -461,14 +462,16 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
           return 0;
         }
         $tags = array_shift($value);
+        $relation = array_shift($value);
         $intersect = array();
         foreach ($tags as $tag) {
           $hasTable = $this->hasTable($class, $tag);
           if (!$tag->id || !$this->tableExists($hasTable)) {
             return '0';
           }
-          $hasQuery = "SELECT `model` AS `id` FROM `$hasTable` WHERE `tag` = {$tag
-            ->id}";
+          $relation['tag'] = $tag;
+          $hasWhere = $this->conditions($relation);
+          $hasQuery = "SELECT `model` AS `id` FROM `$hasTable` WHERE $hasWhere";
           $intersect[] = "($hasQuery)";
         }
         if ($intersect) {
@@ -481,7 +484,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         foreach ($value as $conditions) {
           foreach ($conditions as $attribute => $condition) {
             if (!is_array($condition)) {
-              $condition = array('=' => $condition);
+              $condition = array(
+                '=' => $condition
+              );
             }
             foreach ($condition as $k => $v) {
               switch ((string) $k) {
@@ -508,7 +513,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
                 $in = array();
                 foreach ($v as $_v) {
                   $in[] = array(
-                    $attribute => array('=' => $_v)
+                    $attribute => array(
+                      '=' => $_v
+                    )
                   );
                 }
                 $where[] = $this
@@ -521,7 +528,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
                 $nin = array();
                 foreach ($v as $_v) {
                   $nin[] = array(
-                    $attribute => array('!=' => $_v)
+                    $attribute => array(
+                      '!=' => $_v
+                    )
                   );
                 }
                 $where[] = $this
@@ -534,7 +543,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
                 $all = array();
                 foreach ($v as $_v) {
                   $all[] = array(
-                    $attribute => array('=' => $_v)
+                    $attribute => array(
+                      '=' => $_v
+                    )
                   );
                 }
                 $where[] = $this
@@ -606,16 +617,21 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
               break 3;
             }
             $or[] = array(
-              $attribute => array('=' => $v)
+              $attribute => array(
+                '=' => $v
+              )
             );
           }
-          $where[] = $this->conditions(array(
+          $where[] = $this
+            ->conditions(array(
               '$or' => $or
             ));
         }
         else {
           $and[] = array(
-            $attribute => array('=' => $value)
+            $attribute => array(
+              '=' => $value
+            )
           );
         }
       }
@@ -626,12 +642,12 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         ));
     }
     switch ($logic) {
-      case '$and':
-        $logic = 'AND';
-        break;
-      case '$or':
-        $logic = 'OR';
-        break;
+    case '$and':
+      $logic = 'AND';
+      break;
+    case '$or':
+      $logic = 'OR';
+      break;
     }
     $where = implode(") $logic (", $where);
     return $where ? "($where)" : '1';
@@ -697,7 +713,12 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $join[] = "LEFT OUTER JOIN `$extension` USING (`id`)";
     }
     $join = implode(' ', $join);
-    $where = $this->conditions($search);
+    $where = $this->conditions($search, $class);
+    if (!isset($options['sort'])) {
+      $options['sort'] = array(
+        '_weight' => 1
+      );
+    }
     $options = $this->options($options);
     $query = "SELECT * FROM `$table` $join WHERE $where $options";
     if (static::cfg('debug.read')) {
@@ -746,10 +767,10 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $this->link->autocommit(false);
     try {
       if (!$model->id) {
-        $model->created = new DateTime();
+        $model->_created = new DateTime();
       }
       else {
-        $model->updated = new DateTime();
+        $model->_updated = new DateTime();
       }
       $fields = $model->__toArray();
       $this->denormalizeArray($fields);
@@ -760,7 +781,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $placeholders = array();
         $update = array();
         foreach ($values as $column => &$value) {
-          if (!trim($value)) {
+          if (is_null($value)) {
             $placeholders[] = "NULL";
             unset($values[$column]);
           }
@@ -865,6 +886,67 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     }
   }
 
+  public function belongs($tag, $model, $relation = array(), $search = array(),
+    $options = array())
+  {
+    if (!$tag->id) {
+      return array();
+    }
+    $models = array();
+    $relation['tag'] = $tag->id;
+    if (!isset($options['sort'])) {
+      $options['sort'] = array(
+        '_weight' => 1
+      );
+    }
+    $options = $this->options($options);
+    if (is_object($model)) {
+      if (!$model->id) {
+        return array();
+      }
+      $relation['model'] = $model->id;
+      $where = $this->conditions($relation);
+      if ($hasTable = $this->tableExists($this->hasTable($model, $tag))) {
+        if (static::cfg('debug.has')) {
+          static::cfg('debug.all', true);
+        }
+        if ($this
+          ->query("SELECT `model` FROM `%s` WHERE $where $options", $hasTable)) {
+          $models[] = $model;
+        }
+        if (static::cfg('debug.has')) {
+          static::cfg('debug.all', false);
+        }
+      }
+    }
+    elseif (is_subclass_of($model, 'Aldu\Core\Model')) {
+      $where = $this->conditions($relation);
+      if ($hasTable = $this->tableExists($this->hasTable($model, $tag))) {
+        if (static::cfg('debug.has')) {
+          static::cfg('debug.all', true);
+        }
+        $rows = $this
+          ->query("SELECT `model` FROM `%s` WHERE $where $options", $hasTable);
+        if (static::cfg('debug.has')) {
+          static::cfg('debug.all', false);
+        }
+        if ($search['id'] = array_map(
+          function ($row)
+          {
+            return $row['model'];
+          }, $rows)) {
+          $models = $model::read($search,
+            array(
+              'sort' => array(
+                'id' => $search['id']
+              )
+            ));
+        }
+      }
+    }
+    return $models;
+  }
+
   public function has($model, $tag = null, $relation = array(),
     $search = array(), $options = array())
   {
@@ -875,7 +957,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $relation['model'] = $model->id;
     if (!isset($options['sort'])) {
       $options['sort'] = array(
-        'weight' => 1
+        '_weight' => 1
       );
     }
     $options = $this->options($options);
@@ -1100,5 +1182,29 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $this->query("DELMITER //");
     $this->query($sql, $table, $pk);
     $this->query("DELIMITER ;");
+  }
+  
+
+  public function authenticate($class, $id, $password, $idKey, $pwKey, $pwEnc)
+  {
+    $model = null;
+    switch ($pwEnc) {
+    case "ssha":
+      for ($i = 1; $i <= 10; $i++) {
+        $salt .= substr("0123456789abcdef", rand(0, 15), 1);
+      }
+      $ssha = "{SSHA}" . base64_encode(pack("H*", sha1($password . $salt)) . $salt);
+      $password = $ssha;
+      break;
+    case "md5":
+    default:
+      $md5 = "{MD5}" . base64_encode(pack("H*", md5($password)));
+      $password = $md5;
+    }
+    $model = $this->first($class, array(
+      $idKey => $id,
+      $pwKey => $password
+    ));
+    return $model ? true : false;
   }
 }

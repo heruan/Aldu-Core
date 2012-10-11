@@ -58,10 +58,10 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     }
     foreach ($models as &$model) {
       if (!$model->id) {
-        $model->created = new DateTime();
+        $model->_created = new DateTime();
       }
       else {
-        $model->updated = new DateTime();
+        $model->_updated = new DateTime();
       }
       $class = get_class($model);
       $collection = $this->collection($model);

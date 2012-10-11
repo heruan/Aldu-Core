@@ -32,8 +32,14 @@ class Model extends Stub
       'ldap' => array(
         'openldap' => array(
           'mappings' => array(
-            'created' => 'createTimestamp',
-            'updated' => 'modifyTimestamp'
+            '_created' => 'createTimestamp',
+            '_updated' => 'modifyTimestamp'
+          )
+        ),
+        'ad' => array(
+          'mappings' => array(
+            '_created' => 'whenCreated',
+            '_updated' => 'whenChanged'
           )
         )
       )
@@ -43,8 +49,9 @@ class Model extends Stub
   protected static $relations = array(
     'has' => array(
       'Aldu\Core\Model' => array(
-        'weight' => array(
+        '_weight' => array(
           'type' => 'int',
+          'null' => false,
           'default' => 0
         )
       )
@@ -56,18 +63,23 @@ class Model extends Stub
       'null' => false,
       'other' => 'unsigned'
     ),
-    'created' => array(
+    '_created' => array(
       'type' => 'datetime'
     ),
-    'updated' => array(
+    '_updated' => array(
       'type' => 'datetime'
+    ),
+    '_weight' => array(
+      'type' => 'int',
+      'null' => false,
+      'default' => 0
     )
   );
 
   public $id;
-  public $name;
-  public $created;
-  public $updated;
+  public $_created;
+  public $_updated;
+  public $_weight;
 
   /**
    * 
@@ -116,9 +128,18 @@ class Model extends Stub
     return self::$datasources[get_class($this)]->tag($this, $tags, $relation);
   }
   
+  public function untag($tags = array())
+  {
+    return self::$datasources[get_class($this)]->untag($this, $tags);
+  }
+  
   public function has($tag = null, $relation = array(), $search = array(), $options = array())
   {
     return self::$datasources[get_class($this)]->has($this, $tag, $relation, $search, $options);
+  }
+  
+  public function belongs($class, $relation = array(), $search = array(), $options = array()) {
+    return self::$datasources[get_class($this)]->belongs($this, $class, $relation, $search, $options);
   }
   
   public function save($models = array())

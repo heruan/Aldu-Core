@@ -27,6 +27,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
 {
   const DEFAULT_PORT = 389;
   const FILTER_ALL = '(objectClass=*)';
+  const DATETIME_FORMAT = 'U';
   protected static $configuration = array(
     'configurations' => array(
       array(
@@ -36,8 +37,14 @@ class LDAP extends Datasource\Driver implements DriverInterface
             'ldap' => array(
               'openldap' => array(
                 'mappings' => array(
-                  'created' => 'createTimestamp',
-                  'updated' => 'modifyTimestamp'
+                  '_created' => 'createTimestamp',
+                  '_updated' => 'modifyTimestamp'
+                )
+              ),
+              'ad' => array(
+                'mappings' => array(
+                  '_created' => 'whenCreated',
+                  '_updated' => 'whenChanged'
                 )
               )
             )
@@ -51,10 +58,10 @@ class LDAP extends Datasource\Driver implements DriverInterface
   public function __construct($url, $parts)
   {
     parent::__construct($url);
-    $conn = array_merge(array(
-      'host' => 'localhost',
-      'port' => self::DEFAULT_PORT
-    ), $parts);
+    $conn = array_merge(
+      array(
+        'host' => 'localhost', 'port' => self::DEFAULT_PORT
+      ), $parts);
     if (!$this->link = ldap_connect($conn['host'], $conn['port'])) {
     }
     ldap_set_option($this->link, LDAP_OPT_PROTOCOL_VERSION, 3);
@@ -76,48 +83,239 @@ class LDAP extends Datasource\Driver implements DriverInterface
   {
     $dn = array();
     $class = get_class($model);
-    $rdn = $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.rdn') ? : 'name';
-    $attribute = array_search($rdn, $class::cfg('datasource.ldap.'
-      . $class::cfg('datasource.ldap.type') . '.mappings')) ? : $rdn;
+    $rdn = $class::cfg(
+      'datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.rdn') ? 
+      : 'name';
+    $attribute = array_search($rdn,
+      $class::cfg(
+        'datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.mappings')) ? 
+      : $rdn;
     $dn[] = "$rdn={$model->$attribute}";
-    if ($base = $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.base')) {
+    if ($base = $class::cfg(
+      'datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.base')) {
       $dn[] = $base;
     }
     $dn[] = $this->base;
     return implode(',', $dn);
   }
 
-  protected function filter($class, $search = array())
+  protected function conditions($search = array(), $class = null, $op = '=',
+    $logic = '$and')
   {
-    if (empty($search)) {
-      return self::FILTER_ALL;
-    }
-    $filter = array();
-    foreach ($search as $key => $value) {
-    }
-    return $this->filterAnd($class, $search);
-  }
-
-  protected function filterAnd($class, $array = array())
-  {
+    $where = array();
     $and = array();
-    foreach ($array as $key => $value) {
-      if (is_string($key)) {
-        $key = array_search($key, array_flip($class::cfg('datasource.ldap.'
-          . $class::cfg('datasource.ldap.type') . '.mappings'))) ? : $key;
-      }
-      if (is_string($key) && is_array($value)) {
-        $or = array();
-        foreach ($value as $_value) {
-          $or[] = "$key=$_value";
+    foreach ($search as $attribute => $value) {
+      switch ($attribute) {
+      case '$has':
+        if (!$class) {
+          return 0;
         }
-        $and[] = "|(" . implode(")(", $or) . ")";
-      }
-      elseif (is_string($key) && is_string($value)) {
-        $and[] = "$key=$value";
+        $tags = array_shift($value);
+        $relation = array_shift($value);
+        $intersect = array();
+        foreach ($tags as $tag) {
+          $hasTable = $this->hasTable($class, $tag);
+          if (!$tag->id || !$this->tableExists($hasTable)) {
+            return '0';
+          }
+          $relation['tag'] = $tag;
+          $hasWhere = $this->conditions($relation, $class);
+          $hasQuery = "SELECT `model` AS `id` FROM `$hasTable` WHERE $hasWhere";
+          $intersect[] = "($hasQuery)";
+        }
+        if ($intersect) {
+          $where[] = "`id` IN " . implode(" AND `id` IN ", $intersect);
+        }
+        continue 2;
+      case '$not':
+      case '$and':
+      case '$or':
+        $logic = $attribute;
+        foreach ($value as $conditions) {
+          foreach ($conditions as $attribute => $condition) {
+            if (!is_array($condition)) {
+              $condition = array(
+                '=' => $condition
+              );
+            }
+            foreach ($condition as $k => $v) {
+              switch ((string) $k) {
+              case '=':
+                $op = '=';
+                break;
+              case '$lt':
+              case '<':
+                $op = '<';
+                break;
+              case '$lte':
+              case '<=':
+                $op = '<=';
+                break;
+              case '$gt':
+              case '>':
+                $op = '>';
+                break;
+              case '$gte':
+              case '>=':
+                $op = '>=';
+                break;
+              case '$in':
+                $in = array();
+                foreach ($v as $_v) {
+                  $in[] = array(
+                    $attribute => array(
+                      '=' => $_v
+                    )
+                  );
+                }
+                $where[] = $this
+                  ->conditions(
+                    array(
+                      '$or' => $in
+                    ), $class);
+                continue 2;
+              case '$nin':
+                $nin = array();
+                foreach ($v as $_v) {
+                  $nin[] = array(
+                    $attribute => array(
+                      '=' => $_v
+                    )
+                  );
+                }
+                $where[] = $this
+                  ->conditions(
+                    array(
+                      '$not' => $nin
+                    ), $class);
+                continue 2;
+              case '$all':
+                $all = array();
+                foreach ($v as $_v) {
+                  $all[] = array(
+                    $attribute => array(
+                      '=' => $_v
+                    )
+                  );
+                }
+                $where[] = $this
+                  ->conditions(
+                    array(
+                      '$and' => $all
+                    ), $class);
+                continue 2;
+              case '$mod':
+                // Not supported in LDAP
+                continue 3;
+                $op = "% {$v[0]} = ";
+                $v = $v[1];
+                break;
+              case '$ne':
+              case '<>':
+              case '!=':
+                $op = '!=';
+                break;
+              case '$regex':
+                // Not supported in LDAP
+                continue 3;
+                $op = 'REGEXP';
+                break;
+              }
+              if ($v instanceof Core\Model) {
+                if (!$v->id) {
+                  $v->save();
+                }
+                $v = $v->id;
+              }
+              elseif ($v instanceof DateTime) {
+                $v = $v->format(self::DATETIME_FORMAT);
+              }
+              elseif ($this->isRegex($v)) {
+                // Not supported in LDAP
+                continue 2;
+                $op = 'REGEXP';
+                $v = trim($v, $v[0]);
+              }
+              if (is_string($attribute)) {
+                $k = array_search($attribute,
+                  array_flip(
+                    $class::cfg(
+                      'datasource.ldap.' . $class::cfg('datasource.ldap.type')
+                        . '.mappings'))) ? : $attribute;
+              }
+              $where[] = "$k$op$v";
+            }
+          }
+        }
+        continue 2;
+      default:
+        if (is_array($value)) {
+          $or = array();
+          foreach ($value as $k => $v) {
+            switch ((string) $k) {
+            case '=':
+            case '$lt':
+            case '<':
+            case '$lte':
+            case '<=':
+            case '$gt':
+            case '>':
+            case '$gte':
+            case '>=':
+            case '$in':
+            case '$nin':
+            case '$all':
+            case '$mod':
+            case '$ne':
+            case '<>':
+            case '!=':
+            case '$regex':
+              $and[] = array(
+                $attribute => $value
+              );
+              break 3;
+            }
+            $or[] = array(
+              $attribute => array(
+                '=' => $v
+              )
+            );
+          }
+          $where[] = $this
+            ->conditions(array(
+              '$or' => $or
+            ), $class);
+        }
+        else {
+          $and[] = array(
+            $attribute => array(
+              '=' => $value
+            )
+          );
+        }
       }
     }
-    return "(&(" . implode(")(", $and) . "))";
+    if ($and) {
+      $where[] = $this->conditions(array(
+          '$and' => $and
+        ), $class);
+    }
+    switch ($logic) {
+    case '$not':
+      $logic = '!';
+      break;
+    case '$and':
+      $logic = '&';
+      break;
+    case '$or':
+      $logic = '|';
+      break;
+    }
+    if (count($where) === 1) {
+      return array_shift($where);
+    }
+    $where = "$logic(" . implode(")(", $where) . ")";
+    return $where ? "($where)" : self::FILTER_ALL;
   }
 
   protected function normalize($class, $array)
@@ -132,15 +330,18 @@ class LDAP extends Datasource\Driver implements DriverInterface
           unset($value['count']);
           $key = $key;
           $type = $class::cfg('datasource.ldap.type');
-          $key = array_search($key, $class::cfg("datasource.ldap.$type.mappings")) ? : $key;
+          $key = array_search($key,
+            $class::cfg("datasource.ldap.$type.mappings")) ? : $key;
           if ($ref = $class::cfg("datasource.ldap.$type.references.$key")) {
-            array_walk($value, function (&$item, $key, $ref)
-            {
-              $refClass = $ref['class'];
-              $item = $refClass::first(array(
-                $ref['attribute'] => $item
-              ));
-            }, $ref);
+            array_walk($value,
+              function (&$item, $key, $ref)
+              {
+                $refClass = $ref['class'];
+                $item = $refClass::first(
+                  array(
+                    $ref['attribute'] => $item
+                  ));
+              }, $ref);
           }
           $this->normalizeAttribute($class, $key, $value);
           $normalize[$key] = count($value) > 1 ? $value : $value[0];
@@ -174,19 +375,22 @@ class LDAP extends Datasource\Driver implements DriverInterface
     }
     else {
       $type = $class::cfg('datasource.ldap.type');
-      $base = implode(',', array(
-        $class::cfg("datasource.ldap.$type.base"),
-        $this->base
-      ));
+      $base = implode(',',
+        array(
+          $class::cfg("datasource.ldap.$type.base"), $this->base
+        ));
       if (!isset($search['objectClass'])) {
-        $search['objectClass'] = $class::cfg("datasource.ldap.$type.objectClass");
+        $search['objectClass'] = $class::cfg(
+          "datasource.ldap.$type.objectClass");
       }
-      $filter = $this->filter($class, $search);
+      $filter = $this->conditions($search, $class);
     }
-    $attributes = array_map(function($attribute)use($class, $type) {
-      return $class::cfg("datasource.ldap.$type.mappings.$attribute") ?
-      : $attribute;
-    }, array_keys(get_public_vars($class)));
+    $attributes = array_map(
+      function ($attribute) use ($class, $type)
+      {
+        return $class::cfg("datasource.ldap.$type.mappings.$attribute") ? 
+          : $attribute;
+      }, array_keys(get_public_vars($class)));
     return ldap_search($this->link, $base, $filter, $attributes);
   }
 
@@ -233,7 +437,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
           ;
         }
         else {
-          $attribute = $class::cfg("datasource.ldap.$type.mappings.$attribute") ?
+          $attribute = $class::cfg("datasource.ldap.$type.mappings.$attribute") ? 
             : $attribute;
           $attributes[$attribute] = $value;
         }
@@ -253,10 +457,10 @@ class LDAP extends Datasource\Driver implements DriverInterface
 
   public function authenticate($class, $dn, $password, $dnKey, $pwKey, $pwEnc)
   {
-    if (@ldap_bind($this->link, $class::cfg('datasource.auth.prefix') . $dn, $password)) {
+    if (@ldap_bind($this->link, $id, $password)) {
       return $this->first($class, array(
-        $dnKey => $dn
-      ));
+          $idKey => $id
+        ));
     }
     return false;
   }

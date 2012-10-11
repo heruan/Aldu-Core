@@ -21,4 +21,5 @@ use Aldu\Core;
 
 class Locale extends Core\Model
 {
+  public $name;
 }
