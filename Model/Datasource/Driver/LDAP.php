@@ -103,7 +103,6 @@ class LDAP extends Datasource\Driver implements DriverInterface
     $logic = '$and')
   {
     $where = array();
-    $and = array();
     foreach ($search as $attribute => $value) {
       switch ($attribute) {
       case '$has':
@@ -247,58 +246,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
             }
           }
         }
-        continue 2;
-      default:
-        if (is_array($value)) {
-          $or = array();
-          foreach ($value as $k => $v) {
-            switch ((string) $k) {
-            case '=':
-            case '$lt':
-            case '<':
-            case '$lte':
-            case '<=':
-            case '$gt':
-            case '>':
-            case '$gte':
-            case '>=':
-            case '$in':
-            case '$nin':
-            case '$all':
-            case '$mod':
-            case '$ne':
-            case '<>':
-            case '!=':
-            case '$regex':
-              $and[] = array(
-                $attribute => $value
-              );
-              break 3;
-            }
-            $or[] = array(
-              $attribute => array(
-                '=' => $v
-              )
-            );
-          }
-          $where[] = $this
-            ->conditions(array(
-              '$or' => $or
-            ), $class);
-        }
-        else {
-          $and[] = array(
-            $attribute => array(
-              '=' => $value
-            )
-          );
-        }
       }
-    }
-    if ($and) {
-      $where[] = $this->conditions(array(
-          '$and' => $and
-        ), $class);
     }
     switch ($logic) {
     case '$not':
