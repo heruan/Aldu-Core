@@ -53,6 +53,9 @@ class Datasource extends Core\Stub
       case 'ldap':
         $driver = new Datasource\Driver\LDAP($url, $parts);
         break;
+      case 'odbc':
+        $driver = new Datasource\Driver\ODBC($url, $parts);
+        break;
       case null:
         throw new Exception("Scheme cannot be null.");
       default:

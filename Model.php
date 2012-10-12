@@ -89,17 +89,18 @@ class Model extends Stub
    */
   protected static function configure($configuration = array())
   {
-    $configuration['attributes'] = static::$attributes;
-    $configuration['relations'] = static::$relations;
-    return array_replace_recursive(parent::configure(), $configuration);
+    $class = get_called_class();
+    $configuration['attributes'] = $class::$attributes;
+    $configuration['relations'] = $class::$relations;
+    return parent::configure($configuration);
   }
 
   public function __construct($attributes = array())
   {
     parent::__construct();
     $class = get_class($this);
-    $class::cfg(array('attributes' => $class::$attributes));
-    $class::cfg(array('relations' => $class::$relations));
+    //$class::cfg(array('attributes' => $class::$attributes));
+    //$class::cfg(array('relations' => $class::$relations));
     if (!isset(self::$datasources[$class])) {
       self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
     }

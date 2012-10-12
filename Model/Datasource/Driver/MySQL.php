@@ -432,7 +432,6 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 
   protected function normalizeRow($class, &$row)
   {
-    $table = $this->tableName($class);
     foreach ($row as $field => &$value) {
       if (($type = $class::cfg("attributes.$field.type"))
         && is_subclass_of($type, 'Aldu\Core\Model')) {

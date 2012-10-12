@@ -87,10 +87,7 @@ abstract class Stub
   protected static function configure($config = array())
   {
     $self = get_called_class();
-    if ($config) {
-      self::$_configurations[$self] = $config;
-    }
-    elseif (!isset(self::$_configurations[$self])) {
+    if (!isset(self::$_configurations[$self])) {
       if ($parent = get_parent_class($self)) {
         $config = $parent::configure();
       }
@@ -116,6 +113,9 @@ abstract class Stub
       }
       static::$configuration = $config;
       self::$_configurations[$self] = $config;
+    }
+    if ($config) {
+      self::$_configurations[$self] = array_replace_recursive(self::$_configurations[$self], $config);
     }
     return self::$_configurations[$self];
   }

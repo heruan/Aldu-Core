@@ -53,6 +53,8 @@ class Driver extends Core\Stub implements DriverInterface
     }
     elseif ($value) {
       switch ($class::cfg("attributes.$attribute.type")) {
+      case 'date':
+      case 'time':
       case 'datetime':
         if (preg_match('/[0-9]+\..Z/', $value)) {
           $value = explode('.', $value);
