@@ -31,6 +31,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   const DATETIME_FORMAT = 'Y-m-d H:i:s';
   const INDEX_TABLE = '_index';
   protected static $configuration = array(
+    'debug' => array(
+      'all' => false
+    ),
     'revisions' => false
   );
   protected $database;
@@ -178,15 +181,18 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     return false;
   }
 
-  protected function createQuery($class, $attribute, $column = null)
+  protected function createQuery($class, $attribute, $column = null, $null = null)
   {
     $options = array_merge(
       array(
         'type' => 'text', 'other' => null, 'null' => true, 'default' => null
       ), $class::cfg("attributes.$attribute"));
+    if (is_bool($null)) {
+      $options['null'] = $null;
+    }
     extract($options);
     if (is_subclass_of($type, 'Aldu\Core\Model')) {
-      return $this->createQuery($type, 'id', $attribute);
+      return $this->createQuery($type, 'id', $attribute, $null);
     }
     $column = $column ? : $attribute;
     return $this->createType($column, $options);

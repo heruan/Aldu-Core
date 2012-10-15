@@ -184,6 +184,9 @@ class Page extends Helper\HTML
       $node = $this->body->node('#aldu-core-view-helper-html-page-content'))) {
       $node = $this->body;
     }
+    if ($content instanceof Helper\DOM\Node) {
+      $content->import($this->document);
+    }
     $node->append($content);
     $this->prefixAnchors($this->body);
     $this->populateBlocks($this->body);

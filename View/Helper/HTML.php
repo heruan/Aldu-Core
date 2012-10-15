@@ -23,7 +23,7 @@ use Aldu\Core\View;
 class HTML extends DOM\Node
 {
 
-  public function __construct($node = null, $document = null)
+  public function __construct($node = null, $text = null, $attributes = array(), $document = null)
   {
     if (!$document) {
       $document = DOM\Document::instance();
@@ -32,7 +32,7 @@ class HTML extends DOM\Node
       $node = $document->create('html');
     }
     elseif (is_string($node)) {
-      $node = $document->create($node);
+      $node = $document->create($node, $text, $attributes);
     }
     parent::__construct($document, $node);
   }

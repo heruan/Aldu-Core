@@ -31,6 +31,7 @@ class Controller extends Event\Listener
   {
     $this->request = $request ?: HTTP\Request::instance();
     $this->response = $response ?: HTTP\Response::instance();
+    $this->router = Router::instance();
     $self = get_class($this);
     $parts = explode(NS, $self);
     $class = array_pop($parts);

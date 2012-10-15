@@ -23,6 +23,7 @@ use Aldu\Core\Utility\Inflector;
 use Aldu\Core\Exception;
 use Aldu\Core;
 use DateTime;
+use PDO, PDOStatement, PDOException;
 
 /*
 use SAIV\ITSM\Models\CustomerCompany as CC;
@@ -54,16 +55,17 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
         'host' => 'localhost', 'port' => null, 'user' => null, 'pass' => null,
         'path' => null
       ), $parts);
-    if (!$this->link = odbc_connect($conn['host'], $conn['user'], $conn['pass'])) {
-      throw new Exception(
-        'Cannot connect " . __CLASS__ . " to ' . $conn['host']);
+    try {
+      $this->link = new PDO($conn['scheme'] . ':' . $conn['host'], $conn['user'], $conn['pass']);
+    } catch (PDOException $e) {
+      var_dump($conn['host']);
+      var_dump($e->getMessage());
     }
   }
 
   public function __destruct()
   {
     if ($this->link) {
-      odbc_close($this->link);
     }
   }
 
@@ -88,15 +90,12 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
     if ($debug) {
       echo $query . "\n";
     }
-    $result = odbc_exec($this->link, $query);
+    $result = $this->link->query($query);
     if (is_bool($result)) {
       $cache = $result;
     }
     else {
-      while ($row = odbc_fetch_array($result)) {
-        $rows[] = $row;
-      }
-      odbc_free_result($result);
+      $rows = $result->fetchAll(PDO::FETCH_ASSOC);
       $cache = $rows;
     }
     return $cache;
@@ -116,11 +115,12 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
   protected function conditions($search = array(), $class = null, $op = '=',
     $logic = '$and')
   {
+    $search = $this->normalizeSearch($search);
     $where = array();
     foreach ($search as $attribute => $value) {
       switch ($attribute) {
       case '$has':
-        continue 2;
+        break;
       case '$and':
       case '$or':
         $logic = $attribute;

@@ -288,4 +288,42 @@ class ClassLoader
         }
         return false;
     }
+    
+    public static function nsExists($ns)
+    {
+        foreach (spl_autoload_functions() as $loader) {
+            if (is_array($loader)) { // array(???, ???)
+                if (is_object($loader[0])) {
+                    if ($loader[0] instanceof ClassLoader) { // array($obj, 'methodName')
+                        if ($loader[0]->_nsExists($ns)) {
+                            return true;
+                        }
+                    } else if ($loader[0]->{$loader[1]}($ns)) {
+                        return true;
+                    }
+                } else if ($loader[0]::$loader[1]($ns)) { // array('ClassName', 'methodName')
+                    return true;
+                }
+            } else if ($loader instanceof \Closure) { // function($ns) {..}
+                if ($loader($ns)) {
+                    return true;
+                }
+            } else if (is_string($loader) && $loader($ns)) { // "MyClass::loadClass"
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
+    protected function _nsExists($nsName)
+    {
+      $explode = explode($this->namespaceSeparator, $nsName);
+      $dir = implode(DIRECTORY_SEPARATOR, $explode);
+      if ($this->includePath !== null) {
+        $path = $this->includePath . DIRECTORY_SEPARATOR . $dir;
+        return file_exists($path);
+      }
+      return self::fileExistsInIncludePath($dir, $dir);
+    }
 }

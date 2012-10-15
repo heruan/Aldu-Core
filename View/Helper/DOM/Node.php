@@ -258,6 +258,12 @@ class Node extends Helper\DOM implements Iterator, Countable
     }
     return array_shift($nodes);
   }
+  
+  public function import($document)
+  {
+    $this->document = $document;
+    $this->node = $this->document->import($this->node);
+  }
 
   public function first()
   {

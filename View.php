@@ -30,6 +30,13 @@ class View extends Stub
   protected $router;
   protected $request;
   protected $response;
+  
+  protected static $configuration = array(
+    'shortcuts' => array(
+      'index' => "Index of %s",
+      'create' => "Create new %s"
+      )
+    );
 
   public function __construct(Model $model, HTTP\Request $request, HTTP\Response $response)
   {
@@ -186,5 +193,18 @@ class View extends Stub
       $form->submit();
       return $this->response->body($page->compose($form));
     }
+  }
+  
+  public static function shortcuts($block, $element)
+  {
+    $ul = new Helper\HTML('ul.aldu-ui-toolbar-shortcuts.menu.clearfix');
+    $router = Router::instance();
+    $locale = Locale::instance();
+    if (($route = $router->current) && $route->controller) {
+       foreach (static::cfg('shortcuts') as $action => $title) {
+        $ul->li()->a($locale->t($title, $route->controller->model->name()))->href = $route->controller->model->url($action);
+      }
+    }
+    return $ul;
   }
 }

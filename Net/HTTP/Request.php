@@ -19,6 +19,7 @@
 
 namespace Aldu\Core\Net\HTTP;
 use Aldu\Core\Net;
+use Aldu\Core;
 
 class Request extends Net\HTTP
 {
@@ -95,6 +96,9 @@ class Request extends Net\HTTP
   public $ip;
   public $id;
   public $upload;
+  public $session;
+  public $cookie;
+  public $cipher;
 
   /**
    * The Access Request Object (ARO)
@@ -235,9 +239,10 @@ class Request extends Net\HTTP
   {
     parent::__construct();
     $this->sapi = PHP_SAPI;
-    $this->session = new Session();
     $this->upload = new Upload();
+    $this->session = new Session();
     $this->cookie = new Cookie();
+    $this->cipher = new Core\Utility\Cipher();
     $this->resource = strtolower($resource);
     $this->method = strtoupper($method);
     list($this->protocol, $this->version) = explode('/', strtoupper($protocol));
@@ -368,6 +373,14 @@ class Request extends Net\HTTP
     return md5(implode('::', $id));
   }
 
+  public static function updateAro($class, $id, $password = null, $encrypted = false)
+  {
+    $self = self::instance();
+    if ($aro = $class::authenticate($id, $password, $encrypted)) {
+      $self->aro = $aro;
+    }
+  }
+  
   public function initialize()
   {
     $this->id = $this->_id();

@@ -234,6 +234,11 @@ class Document extends Helper\DOM
     return $this->document->importNode($element);
   }
 
+  public function import($node)
+  {
+    return $this->document->importNode($node, true);
+  }
+  
   protected function selectorToQuery($selector)
   {
     $selector = (string) $selector;

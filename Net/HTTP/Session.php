@@ -35,7 +35,9 @@ class Session extends Net\HTTP
       session_start();
       $id = session_id();
       foreach (static::env('SESSION') as $key => $value) {
-        
+        if (is_callable($key)) {
+          call_user_func_array($key, unserialize($value));
+        }
       }
     }
     return $id;
@@ -52,5 +54,22 @@ class Session extends Net\HTTP
     $this->close();
     session_unset();
     session_destroy();
+  }
+  
+  public function save($key, $value)
+  {
+    $_SESSION[$key] = serialize($value);
+  }
+  
+  public function read($key)
+  {
+    return isset($_SESSION[$key]) ? unserialize($_SESSION[$key]) : null;
+  }
+  
+  public function delete($key)
+  {
+    if (isset($_SESSION[$key])) {
+      unset($_SESSION[$key]);
+    }
   }
 }

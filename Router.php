@@ -30,13 +30,11 @@ class Router extends Stub
     'prefixes' => array(),
     'routes' => array(
       'view' => array(
-        'path' => '%controller/%arg~#[0-9]+#/%action:?',
-        'action' => 'view',
+        'path' => '%controller/%arg~#[0-9]+#/%action:?', 'action' => 'view',
         'arguments' => array()
       ),
       'index' => array(
-        'path' => '%controller/%action/%arg:*',
-        'action' => 'index',
+        'path' => '%controller/%action/%arg:*', 'action' => 'index',
         'arguments' => array()
       )
     )
@@ -53,9 +51,6 @@ class Router extends Stub
   public $basePath;
   public $fullPath;
   public $current;
-  public $controller;
-  public $action;
-  public $arguments;
   protected $request;
   protected $response;
   protected $contexts = array();
@@ -107,7 +102,7 @@ class Router extends Stub
       $routeSteps = $steps;
       $result = $this->_resolve($route, $routeSteps);
       if (empty($routeSteps) && $result) {
-        $this->current = $route;
+        $this->current = $result;
         $trace[] = $result;
         break;
       }
@@ -122,7 +117,8 @@ class Router extends Stub
 
   protected function _resolve($route, &$steps)
   {
-    if (isset($route->host) && !preg_match('/' . $route->host . '/', $this->host)) {
+    if (isset($route->host)
+      && !preg_match('/' . $route->host . '/', $this->host)) {
       return null;
     }
     $path = implode('/', $steps);
@@ -137,17 +133,15 @@ class Router extends Stub
       foreach (explode('/', $route->path) as $position => $pattern) {
         list($pattern, $cardinality) = explode(':', $pattern)
           + array(
-            null,
-            1
+            null, 1
           );
         list($pattern, $_defaults) = explode('=', $pattern)
           + array(
-            null,
-            ''
+            null, ''
           );
-        list($pattern, $regex) = explode('~', $pattern) + array(
-            null,
-            null
+        list($pattern, $regex) = explode('~', $pattern)
+          + array(
+            null, null
           );
         preg_match_all('/(?<=,|{)([^,]*)+(?=,|})/', $_defaults, $__defaults);
         $defaults = empty($_defaults) ? array() : array_shift($__defaults);
@@ -174,8 +168,8 @@ class Router extends Stub
           $_steps = $steps;
           while ($step = array_shift($_steps)) {
             $count++;
-            $route->namespace = isset($route->namespace) ? $route->namespace . NS
-                . Inflector::camelize($step) : Inflector::camelize($step);
+            $route->namespace = isset($route->namespace) ? $route->namespace
+                . NS . Inflector::camelize($step) : Inflector::camelize($step);
             if ($controller = $this->_controller($route, $controller)) {
               $action = $this->_action($route, $controller);
               $steps = array_slice($steps, $count);
@@ -183,7 +177,8 @@ class Router extends Stub
           }
           break;
         case '%controller':
-          $namespaces = isset($route->namespace) ? explode(',', $route->namespace) : array();
+          $namespaces = isset($route->namespace) ? explode(',',
+              $route->namespace) : array();
           $namespace = '';
           do {
             $class = '';
@@ -193,10 +188,15 @@ class Router extends Stub
               $_class = Inflector::classify($step);
               $_namespace = $namespace ? $namespace . NS : '';
               foreach ($_steps as $ns) {
-                $_namespace .= Inflector::camelize($ns) . NS;
+                $__namespace = $_namespace . Inflector::camelize($ns) . NS;
+                if (!ClassLoader::nsExists($__namespace)) {
+                  $__namespace = $_namespace . strtoupper($ns) . NS;
+                }
+                $_namespace = $__namespace;
               }
               $classes = array(
-                $_namespace . 'Controllers' . NS . $_class
+                $_namespace . 'Controllers' . NS . $_class,
+                $_namespace . 'Controllers' . NS . strtoupper($_class)
               );
               foreach ($classes as $class) {
                 $Model = str_replace('Controllers', 'Models', $class);
@@ -211,11 +211,9 @@ class Router extends Stub
               }
               $count--;
             }
-          }
-          while ($namespace = array_shift($namespaces));
+          } while ($namespace = array_shift($namespaces));
           $controller = $this->_controller($route, $controller);
-          if (!$controller)
-            continue 3;
+          if (!$controller) continue 3;
           break;
         case '%action':
           if (!$controller = $this->_controller($route, $controller)) {
@@ -227,24 +225,21 @@ class Router extends Stub
             array_shift($steps);
           }
           $action = $this->_action($route, $controller, $action);
-          if (!$action)
-            continue 3;
+          if (!$action) continue 3;
           break;
         case '%arg':
           $count = 0;
           while (count($steps)) {
-            if ($regex && !preg_match($regex, current($steps)))
-              break;
-            if ($max && $max == $count)
-              break;
+            if ($regex && !preg_match($regex, current($steps))) break;
+            if ($max && $max == $count) break;
             $count++;
             $arguments[] = array_shift($steps);
           }
-          if ((($max && $count < $max) || ($min && $count < $min)) && count($defaults) > $count) {
+          if ((($max && $count < $max) || ($min && $count < $min))
+            && count($defaults) > $count) {
             $remaining = array_slice($defaults, $count);
             while ($arg = array_shift($remaining)) {
-              if ($max && $max == $count)
-                break;
+              if ($max && $max == $count) break;
               $count++;
               $arguments[] = $arg;
             }
@@ -254,33 +249,31 @@ class Router extends Stub
           }
           break;
         default:
-          if ($pattern === current($steps))
-            array_shift($steps);
-          else
-            array_unshift($steps, $pattern);
+          if ($pattern === current($steps)) array_shift($steps);
+          else array_unshift($steps, $pattern);
         }
       }
-    }
-    while (false);
+    } while (false);
 
-    return array(
-      'host' => $this->host,
-      'path' => $this->path,
-      'namespace' => $route->namespace,
-      'controller' => $controller,
+    if (!$controller || !$action) {
+      return null;
+    }
+    return new Router\Models\Route(array(
+      'host' => $this->host, 'path' => $this->path,
+      'namespace' => $route->namespace, 'controller' => $controller,
       'action' => $action,
-      'arguments' => is_array($route->arguments) ? $arguments + $route->arguments : $arguments + explode('/', $route->arguments)
-    );
+      'arguments' => is_array($route->arguments) ? $arguments
+          + $route->arguments : $arguments + explode('/', $route->arguments)
+    ));
   }
 
   protected function _controller($route, $controller = null)
   {
-    if ($controller instanceof Controller)
-      return $controller;
-    if (!isset($route->controller))
-      return null;
+    if ($controller instanceof Controller) return $controller;
+    if (!isset($route->controller)) return null;
 
-    $namespaces = isset($route->namespace) ? explode(',', $route->namespace) : array();
+    $namespaces = isset($route->namespace) ? explode(',', $route->namespace)
+      : array();
     $namespace = '';
 
     $_class = $route->controller;
@@ -291,16 +284,14 @@ class Router extends Stub
         $controller = new $class($this->request, $this->response);
         break;
       }
-    }
-    while ($namespace = array_shift($namespaces));
+    } while ($namespace = array_shift($namespaces));
 
     return $controller;
   }
 
   protected function _action($route, $controller = null, $action = null)
   {
-    if (!$controller = $this->_controller($route, $controller))
-      return null;
+    if (!$controller = $this->_controller($route, $controller)) return null;
     if (!$action) {
       if (isset($route->action) && method_exists($controller, $route->action)) {
         $action = $route->action;

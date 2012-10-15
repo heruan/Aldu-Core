@@ -308,6 +308,10 @@ class Response extends Net\HTTP
 
   public function initialize()
   {
+    if ($messages = $this->request->session->read(__CLASS__ . '::$messages')) {
+      $this->_messages = $messages;
+      $this->request->session->delete(__CLASS__ . '::$messages');
+    }
     if (!$this->request->is('cli')) {
       ob_start();
     }
@@ -348,6 +352,8 @@ class Response extends Net\HTTP
     $this->sent = true;
 
     switch ($this->_status) {
+    case 302:
+      break;
     case 304:
       break;
     default:
@@ -526,6 +532,11 @@ class Response extends Net\HTTP
     }
     if (!isset($this->_statusCodes[$code])) {
       throw new Exception('Unknown status code');
+    }
+    switch ($code) {
+    case 302:
+      $this->request->session->save(__CLASS__ . '::$messages', $this->_messages);
+      break;
     }
     return $this->_status = $code;
   }

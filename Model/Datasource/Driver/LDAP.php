@@ -125,7 +125,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
         if ($intersect) {
           $where[] = "`id` IN " . implode(" AND `id` IN ", $intersect);
         }
-        continue 2;
+        break;
       case '$not':
       case '$and':
       case '$or':
@@ -339,6 +339,9 @@ class LDAP extends Datasource\Driver implements DriverInterface
         return $class::cfg("datasource.ldap.$type.mappings.$attribute") ? 
           : $attribute;
       }, array_keys(get_public_vars($class)));
+    if (static::cfg('debug.all')) {
+      var_dump($filter);
+    }
     return ldap_search($this->link, $base, $filter, $attributes);
   }
 
@@ -403,12 +406,18 @@ class LDAP extends Datasource\Driver implements DriverInterface
     }
   }
 
-  public function authenticate($class, $dn, $password, $dnKey, $pwKey, $pwEnc)
+  public function authenticate($class, $id, $password, $idKey, $pwKey, $pwEnc)
   {
     if (@ldap_bind($this->link, $id, $password)) {
-      return $this->first($class, array(
-          $idKey => $id
-        ));
+      if (strpos($id, NS)) {
+        $explode = explode(NS, $id);
+        $id = array_pop($explode);
+      }
+      if (strpos($id, '@')) {
+        $explode = explode('@', $id);
+        $id = array_shift($explode);
+      }
+      return $class::first(array($idKey => $id));
     }
     return false;
   }

@@ -19,7 +19,6 @@
  */
 
 namespace Aldu\Core;
-use Aldu\Core\Model\Attribute;
 
 class Model extends Stub
 {
@@ -205,6 +204,19 @@ class Model extends Stub
     return $name;
   }
 
+  public static function authenticate($username, $password = null, $encrypted = false)
+  {
+    $class = get_called_class();
+    if (!isset(self::$datasources[$class])) {
+      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
+    }
+    if ($encrypted) {
+      $cipher = Utility\Cipher::instance();
+      $password = $cipher->decrypt($password);
+    }
+    return self::$datasources[$class]->authenticate($class, $username, $password);
+  }
+  
   public function authorized()
   {
     return true;

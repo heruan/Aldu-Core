@@ -68,6 +68,14 @@ class Form extends Helper\HTML
       'action' => $this->context->url($this->action),
       'method' => $method
     ));
+    if ($redirect) {
+      $this->append('input', array(
+        'form' => $this->id,
+        'type' => 'hidden',
+        'name' => '_redirect',
+        'value' => $redirect
+        ));
+    }
   }
 
   public function setModel($model = null, $index = null)

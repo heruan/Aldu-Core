@@ -30,8 +30,12 @@ class Dispatcher extends Event\Listener
   {
     parent::__construct();
     $this->request = $request;
+    $this->request->initialize();
     $this->response = $response ? : new HTTP\Response($this->request);
     $this->response->initialize();
+    if (static::cfg('aro.required') && !$this->request->aro) {
+      $this->request->path = static::cfg('aro.login.path');
+    }
     $this->cache = new Cache();
     if ($this->request->query('clearcache')) {
       $this->cache->clear();
@@ -55,16 +59,11 @@ class Dispatcher extends Event\Listener
       $this->trigger('beforeRouting');
       $router = new Router($this->request, $this->response);
       foreach ($router->resolve($this->request->path) as $result) {
-        extract(array_merge(array(
-          'controller' => null,
-          'action' => null,
-          'arguments' => array()
-        ), $result));
         $callback = array(
-          $controller,
-          $action
+          $result->controller,
+          $result->action
         );
-        if (!is_callable($callback) || !call_user_func_array($callback, $arguments)) {
+        if (!is_callable($callback) || !call_user_func_array($callback, $result->arguments)) {
           $this->response->status(404);
           break;
         }
