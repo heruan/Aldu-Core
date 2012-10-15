@@ -97,7 +97,7 @@ class Datasource extends Core\Stub
 
   public function count($class, $search = array(), $options = array())
   {
-    $search = $this->normalizeSearch($search);
+    $search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -108,7 +108,7 @@ class Datasource extends Core\Stub
     }
     return $result;
   }
-  
+
   public function exists($model)
   {
     if (!isset($model->id)) {
@@ -117,76 +117,10 @@ class Datasource extends Core\Stub
     $class = get_class($model);
     return $this->driver->exists($model);
   }
-  
-  protected function normalizeSearch($_search = array(), $op = '=', $logic = '$and')
-  {
-    $search = array();
-    foreach ($_search as $attribute => $value) {
-      switch ($attribute) {
-      case '$has':
-      case '$not':
-      case '$and':
-      case '$or':
-        $search[$attribute] = $value;
-        break;
-      default:
-        if (is_array($value)) {
-          $or = array();
-          foreach ($value as $k => $v) {
-            switch ((string) $k) {
-            case '=':
-            case '$lt':
-            case '<':
-            case '$lte':
-            case '<=':
-            case '$gt':
-            case '>':
-            case '$gte':
-            case '>=':
-            case '$in':
-            case '$nin':
-            case '$all':
-            case '$mod':
-            case '$ne':
-            case '<>':
-            case '!=':
-            case '$regex':
-              if (!isset($search['$and'])) {
-                $search['$and'] = array();
-              }
-              $search['$and'][] = array(
-                $attribute => $value
-              );
-              break 3;
-            }
-           if (!isset($search['$or'])) {
-              $search['$or'] = array();
-            }
-            $search['$or'][] = array(
-              $attribute => array(
-                '=' => $v
-              )
-            );
-          }
-        }
-        else {
-          if (!isset($search['$and'])) {
-            $search['$and'] = array();
-          }
-          $search['$and'][] = array(
-            $attribute => array(
-              '=' => $value
-            )
-          );
-        }
-      }
-    }
-    return $search;
-  }
 
   public function first($class, $search = array(), $options = array())
   {
-    $search = $this->normalizeSearch($search);
+    $search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -200,7 +134,7 @@ class Datasource extends Core\Stub
 
   public function read($class, $search = array(), $options = array())
   {
-    $search = $this->normalizeSearch($search);
+    $search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -227,7 +161,7 @@ class Datasource extends Core\Stub
 
   public function purge($class, $search = array(), $options = array())
   {
-    $search = $this->normalizeSearch($search);
+    $search = $this->driver->normalizeSearch($search);
     $cache = implode('::', array(
       $class
     ));
@@ -249,7 +183,7 @@ class Datasource extends Core\Stub
     $this->cache->delete($cache);
     return $this->driver->tag($model, $tags, $relation);
   }
-  
+
   public function untag($model, $tags = array())
   {
     if (!is_array($tags)) {
@@ -281,7 +215,7 @@ class Datasource extends Core\Stub
     }
     return $result;
   }
-  
+
   public function belongs($tag, $model, $relation = array(),
     $search = array(), $options = array())
   {
@@ -296,7 +230,7 @@ class Datasource extends Core\Stub
     }
     return $result;
   }
-  
+
   public function authenticate($class, $id, $password)
   {
     if (is_object($class)) {

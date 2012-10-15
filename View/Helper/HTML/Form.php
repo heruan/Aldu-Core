@@ -20,6 +20,7 @@
 namespace Aldu\Core\View\Helper\HTML;
 use Aldu\Core\View\Helper;
 use Aldu\Core;
+use DateTime;
 
 class Form extends Helper\HTML
 {
@@ -138,6 +139,13 @@ class Form extends Helper\HTML
     return $this->__call(__FUNCTION__, $args);
   }
 
+  protected function normalizeValue(&$value)
+  {
+    if ($value && $value instanceof DateTime) {
+      $value = $value->format(ALDU_DATETIME_FORMAT);
+    }
+  }
+
   public function __call($type, $arguments)
   {
     $name = array_shift($arguments);
@@ -162,6 +170,7 @@ class Form extends Helper\HTML
       'gateway' => false
     ), $_);
     extract($_);
+    $this->normalizeValue($value);
     $modelClass = $this->model ? get_class($this->model) : null;
     if ($modelClass && ($value === false || $value === 'false')
       && is_subclass_of($modelClass::cfg("attributes.$name.type"), 'Aldu\Core\Model')) {

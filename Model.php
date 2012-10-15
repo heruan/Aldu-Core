@@ -24,6 +24,7 @@ use Aldu\Core\Model\Attribute;
 class Model extends Stub
 {
   public static $Controller;
+  public static $View;
   protected static $configuration = array(
     'datasource' => array(
       'url' => array(
@@ -46,6 +47,7 @@ class Model extends Stub
     )
   );
   protected static $datasources = array();
+  protected static $extensions = array();
   protected static $relations = array(
     'has' => array(
       'Aldu\Core\Model' => array(
@@ -79,10 +81,10 @@ class Model extends Stub
   public $id;
   public $_created;
   public $_updated;
-  public $_weight;
+  public $_weight = 0;
 
   /**
-   * 
+   *
    * Enter description here ...
    * @param unknown_type $configuration
    * @deprecated
@@ -91,6 +93,7 @@ class Model extends Stub
   {
     $class = get_called_class();
     $configuration['attributes'] = $class::$attributes;
+    $configuration['extensions'] = $class::$extensions;
     $configuration['relations'] = $class::$relations;
     return parent::configure($configuration);
   }
@@ -116,6 +119,12 @@ class Model extends Stub
   {
     $array = array();
     foreach (get_object_vars($this) as $name => $attribute) {
+      if ($attribute instanceof DateTime) {
+        $attribute = $attribute->format(ALDU_DATETIME_FORMAT);
+      }
+      elseif ($attribute instanceof self) {
+        $attribute = $attribute->id;
+      }
       $array[$name] = $attribute;
     }
     return $array;
@@ -128,21 +137,21 @@ class Model extends Stub
     }
     return self::$datasources[get_class($this)]->tag($this, $tags, $relation);
   }
-  
+
   public function untag($tags = array())
   {
     return self::$datasources[get_class($this)]->untag($this, $tags);
   }
-  
+
   public function has($tag = null, $relation = array(), $search = array(), $options = array())
   {
     return self::$datasources[get_class($this)]->has($this, $tag, $relation, $search, $options);
   }
-  
+
   public function belongs($class, $relation = array(), $search = array(), $options = array()) {
     return self::$datasources[get_class($this)]->belongs($this, $class, $relation, $search, $options);
   }
-  
+
   public function save($models = array())
   {
     if (empty($models)) {

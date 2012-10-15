@@ -224,7 +224,7 @@ class ClassLoader
      */
     public static function classExists($className)
     {
-        if (class_exists($className, false) && in_array($className, get_declared_classes())) {
+        if (class_exists($className, false)) {// && in_array($className, get_declared_classes())) {
             return true;
         }
 

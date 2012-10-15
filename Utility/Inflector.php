@@ -1942,7 +1942,7 @@ class Inflector {
  */
   public static function underscore($camelCasedWord) {
     if (!($result = self::_cache(__FUNCTION__, $camelCasedWord))) {
-      $result = strtolower(preg_replace('/(?<=\\w)([A-Z])/', '_\\1', $camelCasedWord));
+      $result = ctype_upper($camelCasedWord) ? strtolower($camelCasedWord) : strtolower(preg_replace('/(?<=\\w)([A-Z])/', '_\\1', $camelCasedWord));
       self::_cache(__FUNCTION__, $camelCasedWord, $result);
     }
     return $result;

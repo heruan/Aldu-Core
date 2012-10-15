@@ -452,6 +452,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   protected function conditions($search = array(), $class = null, $op = '=',
     $logic = '$and')
   {
+    $search = $this->normalizeSearch($search);
     $where = array();
     foreach ($search as $attribute => $value) {
       switch ($attribute) {
@@ -475,7 +476,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         if ($intersect) {
           $where[] = "`id` IN " . implode(" AND `id` IN ", $intersect);
         }
-        continue 2;
+        break;
       case '$and':
       case '$or':
         $logic = $attribute;
@@ -632,7 +633,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $return[1] = $sort ? "ORDER BY " . implode(', ', $sort) : '';
         break;
       case 'limit':
-        if ($value < 0) {
+        if (!$value) {
           $value = '18446744073709551615';
         }
         $return[2] = "LIMIT " . $this->link->real_escape_string($value);
@@ -728,7 +729,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $placeholders = array();
         $update = array();
         foreach ($values as $column => &$value) {
-          if (is_null($value)) {
+          if (is_null($value) || trim($value) === '') {
             $placeholders[] = "NULL";
             unset($values[$column]);
           }
@@ -1130,7 +1131,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $this->query($sql, $table, $pk);
     $this->query("DELIMITER ;");
   }
-  
+
 
   public function authenticate($class, $id, $password, $idKey, $pwKey, $pwEnc)
   {

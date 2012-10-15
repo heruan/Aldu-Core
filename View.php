@@ -19,6 +19,7 @@
 namespace Aldu\Core;
 use Aldu\Core\View\Helper;
 use Aldu\Core\Net\HTTP;
+use DateTime;
 
 class View extends Stub
 {
@@ -35,29 +36,66 @@ class View extends Stub
     parent::__construct();
     $this->model = $model;
     $this->locale = Locale::instance();
+    $this->router = Router::instance();
     $this->request = $request;
     $this->response = $response;
   }
 
-  public function add()
+  public function select($form, $name, $_ = array())
   {
-    switch ($this->render) {
-    case 'page':
-    default:
-      $page = new Helper\HTML\Page();
-      $page->theme();
-      $page->title($this->locale->t('Add new %s', $this->model->name()));
-      $form = $this->form($this->model, __FUNCTION__);
-      $title = $form->text('title', array('title' => $this->locale->t('Title')));
-      $form->add($title);
-      $form->submit();
-      return $this->response->body($page->compose($form));
+    $_ = array_merge(array(
+      'first' => true,
+      'title' => '',
+      'description' => '',
+      'required' => false,
+      'value' => null,
+      'model' => $this->model,
+      'search' => array(),
+      'options' => array()
+    ), $_);
+    extract($_);
+    $models = array();
+    $model = is_object($model) ? $model : new $model();
+    if ($first) {
+      $models[''] = $this->locale->t('Select %s', $model->name());
     }
+    if ($value) {
+      $form->values[$name] = $value;
+    }
+    foreach ($model->read($search, $options) as $m) {
+      $label = $m->title ? : ($m->name ? : $m->id);
+      $models[$m->id] = $label;
+    }
+    $select = $form->select($name, array_merge($_, array(
+      'options' => $models
+    )));
+    if ($required && count($models) === 1) {
+      $select->append('a', $L->t('Add new'), array(
+        'href' => $model->url('create')
+      ));
+    }
+    return $select;
   }
 
   public function form($model, $action)
   {
-    return new Helper\HTML\Form($model, $action);
+    $form = new Helper\HTML\Form($model, $action);
+    foreach ($model->__toArray() as $field => $value) {
+      $type = $this->model->cfg("attributes.$field.type") ? : 'text';
+      switch ($type) {
+      case is_subclass_of($type, 'Aldu\Core\Model', true):
+        $this->select($form, $field, array(
+          'title' => $field,
+          'model' => $type
+        ));
+        break;
+      default:
+        $form->$type($field, array(
+          'title' => $field
+        ));
+      }
+    }
+    return $form;
   }
 
   public function table($models = array(), $_ = array())
@@ -87,10 +125,29 @@ class View extends Stub
       );
     }
     $table = new Helper\HTML\Table($headers);
+    foreach ($models as $model) {
+      $tr = $table->tr();
+      foreach ($actions as $action) {
+        switch ($action) {
+        case 'select':
+        }
+      }
+      foreach ($columns as $attribute => $column) {
+        if (is_numeric($attribute)) {
+          $attribute = $column;
+        }
+        if ($model->$attribute instanceof DateTime) {
+          $tr->td($model->$attribute->format(ALDU_DATETIME_FORMAT));
+        }
+        else {
+          $tr->td($model->$attribute);
+        }
+      }
+    }
     return $table;
   }
 
-  public function index($models = array())
+  public function index($models = array(), $offset = 0, $limit = 10)
   {
     switch ($this->render) {
     case 'page':
@@ -100,6 +157,34 @@ class View extends Stub
       $page->title(__METHOD__);
       $table = $this->table($models);
       return $this->response->body($page->compose($table));
+    }
+  }
+
+  public function create()
+  {
+    switch ($this->render) {
+    case 'page':
+    default:
+      $page = new Helper\HTML\Page();
+      $page->theme();
+      $page->title($this->locale->t('Add new %s', $this->model->name()));
+      $form = $this->form($this->model, __FUNCTION__);
+      $form->submit();
+      return $this->response->body($page->compose($form));
+    }
+  }
+
+  public function update($model)
+  {
+    switch ($this->render) {
+    case 'page':
+    default:
+      $page = new Helper\HTML\Page();
+      $page->theme();
+      $page->title($this->locale->t('Add new %s', $this->model->name()));
+      $form = $this->form($model, __FUNCTION__);
+      $form->submit();
+      return $this->response->body($page->compose($form));
     }
   }
 }

@@ -69,6 +69,11 @@ class HTML extends DOM\Node
     return $this->cast(__FUNCTION__, func_get_args());
   }
 
+  public function current()
+  {
+    return new self(parent::current(), $this->document);
+  }
+
   public function addClass($class)
   {
     $classes = explode(' ', $this->class);

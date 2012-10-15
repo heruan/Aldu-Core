@@ -24,6 +24,9 @@ use Aldu\Core;
 class Page extends Helper\HTML
 {
   protected static $configuration = array(
+    'title' => array(
+      'separator' => ' - '
+    ),
     'themes' => array(
       'base' => 'public/themes',
       'default' => array(
@@ -124,7 +127,7 @@ class Page extends Helper\HTML
     if (!count($node = $this->head->node('base'))) {
       $node = $this->head->prepend('base');
     }
-    $base = $base ? 
+    $base = $base ?
       : implode('/',
         array(
           static::cfg('themes.base'), $this->theme['name'], null
@@ -154,9 +157,7 @@ class Page extends Helper\HTML
     foreach ($context->node('.aldu-core-view-helper-html-page-block') as $node) {
       if ($position = $node->data('position')) {
         $this->router->openContext($position);
-        $Block = new Models\Block();
-        foreach ($Block
-          ->get(array(
+        foreach (Models\Block::read(array(
             'position' => $position
           )) as $block) {
           $this->router->openContext($block->name);
