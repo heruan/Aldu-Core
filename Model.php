@@ -26,21 +26,19 @@ class Model extends Stub
   public static $View;
   protected static $configuration = array(
     'datasource' => array(
+      'acl' => false,
       'url' => array(
-        'scheme' => 'sqlite',
-        'path' => ALDU_DEFAULT_DATASOURCE
+        'scheme' => 'sqlite', 'path' => ALDU_DEFAULT_DATASOURCE
       ),
       'ldap' => array(
         'openldap' => array(
           'mappings' => array(
-            'created' => 'createTimestamp',
-            'updated' => 'modifyTimestamp'
+            'created' => 'createTimestamp', 'updated' => 'modifyTimestamp'
           )
         ),
         'ad' => array(
           'mappings' => array(
-            'created' => 'whenCreated',
-            'updated' => 'whenChanged'
+            'created' => 'whenCreated', 'updated' => 'whenChanged'
           )
         )
       )
@@ -52,39 +50,28 @@ class Model extends Stub
     'has' => array(
       'Aldu\Core\Model' => array(
         '_' => array(
-          'type' => 'int',
-          'null' => false,
-          'default' => 0
+          'type' => 'int', 'null' => false, 'default' => 0
         )
       )
     )
   );
   protected static $attributes = array(
     'id' => array(
-      'type' => 'int',
-      'null' => false,
-      'other' => 'unsigned'
+      'type' => 'int', 'null' => false, 'other' => 'unsigned'
     ),
     'acl' => array(
       'type' => array(
-        'read',
-        'update',
-        'delete'
-      ),
-      'default' => array(
+        'read', 'update', 'delete'
+      ), 'default' => array(
         'read'
       )
-    ),
-    'created' => array(
+    ), 'created' => array(
       'type' => 'datetime'
-    ),
-    'updated' => array(
+    ), 'updated' => array(
       'type' => 'datetime'
     ),
     '_' => array(
-      'type' => 'int',
-      'null' => false,
-      'default' => 0
+      'type' => 'int', 'null' => false, 'default' => 0
     )
   );
 
@@ -114,10 +101,9 @@ class Model extends Stub
   {
     parent::__construct();
     $class = get_class($this);
-    //$class::cfg(array('attributes' => $class::$attributes));
-    //$class::cfg(array('relations' => $class::$relations));
     if (!isset(self::$datasources[$class])) {
-      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
+      self::$datasources[$class] = new Model\Datasource(
+        $class::cfg('datasource.url'));
     }
     foreach ($attributes as $name => $value) {
       if (!property_exists($this, $name)) {
@@ -157,14 +143,18 @@ class Model extends Stub
     return self::$datasources[get_class($this)]->untag($this, $tags);
   }
 
-  public function has($tag = null, $relation = array(), $search = array(), $options = array())
+  public function has($tag = null, $relation = array(), $search = array(),
+    $options = array())
   {
-    return self::$datasources[get_class($this)]->has($this, $tag, $relation, $search, $options);
+    return self::$datasources[get_class($this)]
+      ->has($this, $tag, $relation, $search, $options);
   }
 
-  public function belongs($class, $relation = array(), $search = array(), $options = array())
+  public function belongs($class = null, $relation = array(), $search = array(),
+    $options = array())
   {
-    return self::$datasources[get_class($this)]->belongs($this, $class, $relation, $search, $options);
+    return self::$datasources[get_class($this)]
+      ->belongs($this, $class, $relation, $search, $options);
   }
 
   public function save($models = array())
@@ -197,31 +187,44 @@ class Model extends Stub
 
   protected static function datasource($function)
   {
+    $class = get_called_class();
+    if (!isset(self::$datasources[$class])) {
+      self::$datasources[$class] = new Model\Datasource(
+        $class::cfg('datasource.url'));
+    }
     $request = Net\HTTP\Request::instance();
     $args = func_get_args();
     $function = $args[0];
-    $class = get_called_class();
     $args[0] = $class;
-    $args[1]['$or'] = array(
-      array(
-        '$belongs' => array(
-          $request->aro,
-          array(
-            'acl' => array(
-              '=' => array('read')
-            )
+    if ($class::cfg('datasource.acl')) {
+      $args[1]['$or'][] = array(
+        'acl' => array(
+          '=' => array(
+            'read'
           )
         )
-      ),
-      array('acl' => array('=' => array('read')))
-    );
-    if (!isset(self::$datasources[$class])) {
-      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
+      );
+      if ($request->aro) {
+        $belongs = $request->aro->belongs();
+        $belongs[] = $request->aro;
+        $args[1]['$or'][] = array(
+          '$belongs' => array(
+            $belongs,
+            array(
+              'acl' => array(
+                '=' => array(
+                  'read'
+                )
+              )
+            )
+          )
+        );
+      }
     }
-    return call_user_func_array(array(
-      self::$datasources[$class],
-      $function
-    ), $args);
+    return call_user_func_array(
+      array(
+        self::$datasources[$class], $function
+      ), $args);
   }
 
   public function name()
@@ -233,17 +236,20 @@ class Model extends Stub
     return $name;
   }
 
-  public static function authenticate($username, $password = null, $encrypted = false)
+  public static function authenticate($username, $password = null,
+    $encrypted = false)
   {
     $class = get_called_class();
     if (!isset(self::$datasources[$class])) {
-      self::$datasources[$class] = new Model\Datasource($class::cfg('datasource.url'));
+      self::$datasources[$class] = new Model\Datasource(
+        $class::cfg('datasource.url'));
     }
     if ($encrypted) {
       $cipher = Utility\Cipher::instance();
       $password = $cipher->decrypt($password);
     }
-    return self::$datasources[$class]->authenticate($class, $username, $password);
+    return self::$datasources[$class]
+      ->authenticate($class, $username, $password);
   }
 
   public function authorized($aro, $action = 'read', $attribute = null)
@@ -260,12 +266,12 @@ class Model extends Stub
       $_ = $action;
       $action = 'view';
     }
-    extract(array_merge(array(
-      'prefix' => null,
-      'absolute' => false,
-      'arguments' => array(),
-      'render' => null
-    ), $_));
+    extract(
+      array_merge(
+        array(
+          'prefix' => null, 'absolute' => false, 'arguments' => array(),
+          'render' => null
+        ), $_));
     $arguments = array_filter($arguments);
     $R = Router::instance();
     if ($action === 'view' && $this->path) {
@@ -274,15 +280,16 @@ class Model extends Stub
     else {
       $action = is_bool($action) ? '' : $action;
       $parts = explode(NS, get_class($this));
-      $parts = array_map(array(
-        'Aldu\Core\Utility\Inflector',
-        'underscore'
-      ), $parts);
+      $parts = array_map(
+        array(
+          'Aldu\Core\Utility\Inflector', 'underscore'
+        ), $parts);
       $class = array_pop($parts);
       array_pop($parts);
       $ns = implode(NS, $parts);
       $id = $this->id ? '/' . $this->id : '';
-      $url = str_replace(NS, '/', strtolower($ns)) . '/' . $class . $id . '/' . $action;
+      $url = str_replace(NS, '/', strtolower($ns)) . '/' . $class . $id . '/'
+        . $action;
     }
     $prefix = is_null($prefix) ? null : rtrim($prefix, '/');
     if ($prefix && $absolute) {

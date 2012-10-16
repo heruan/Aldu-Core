@@ -96,6 +96,12 @@ class View extends Stub
           'model' => $type
         ));
         break;
+      case is_array($type):
+        $form->select($field, array(
+          'title' => $field,
+          'options' => $type
+          ));
+          break;
       default:
         $form->$type($field, array(
           'title' => $field
