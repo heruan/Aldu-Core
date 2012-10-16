@@ -59,7 +59,7 @@ class Form extends Helper\HTML
     $this->action = $action;
     parent::__construct('div', $document);
     $this->class = 'aldu-core-view-helper-html-form';
-    $this->id = $id ? : 'form' . md5($this->model . $this->action);
+    $this->id = $id ? : 'form' . uniqid(); //md5($this->model . $this->action);
     $this->form = $this->append('form', array(
       'id' => $this->id,
       'name' => $this->action,

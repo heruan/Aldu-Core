@@ -30,7 +30,7 @@ class View extends Stub
   protected $router;
   protected $request;
   protected $response;
-  
+
   protected static $configuration = array(
     'shortcuts' => array(
       'index' => "Index of %s",
@@ -38,14 +38,14 @@ class View extends Stub
       )
     );
 
-  public function __construct(Model $model, HTTP\Request $request, HTTP\Response $response)
+  public function __construct(Model $model, HTTP\Request $request = null, HTTP\Response $response = null)
   {
     parent::__construct();
     $this->model = $model;
     $this->locale = Locale::instance();
     $this->router = Router::instance();
-    $this->request = $request;
-    $this->response = $response;
+    $this->request = $request ?: HTTP\Request::instance();
+    $this->response = $response ?: HTTP\Response::instance();
   }
 
   public function select($form, $name, $_ = array())
@@ -194,10 +194,10 @@ class View extends Stub
       return $this->response->body($page->compose($form));
     }
   }
-  
+
   public static function shortcuts($block, $element)
   {
-    $ul = new Helper\HTML('ul.aldu-ui-toolbar-shortcuts.menu.clearfix');
+    $ul = new Helper\HTML('ul.menu.clearfix.aldu-core-view-shortcuts');
     $router = Router::instance();
     $locale = Locale::instance();
     if (($route = $router->current) && $route->controller) {

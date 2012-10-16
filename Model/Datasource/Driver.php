@@ -36,48 +36,47 @@ class Driver extends Core\Stub implements DriverInterface
     $search = array();
     foreach ($_search as $attribute => $value) {
       switch ($attribute) {
-        case '$has':
-        case '$not':
-        case '$and':
-        case '$or':
-          $search[$attribute] = $value;
-          break;
-        default:
-          if (is_array($value)) {
-          $or = array();
+      case '$has':
+      case '$not':
+      case '$and':
+      case '$or':
+        $search[$attribute] = $value;
+        break;
+      default:
+        if (is_array($value)) {
           foreach ($value as $k => $v) {
             switch ((string) $k) {
-              case '=':
-              case '$lt':
-              case '<':
-              case '$lte':
-              case '<=':
-              case '$gt':
-              case '>':
-              case '$gte':
-              case '>=':
-              case '$in':
-              case '$nin':
-              case '$all':
-              case '$mod':
-              case '$ne':
-              case '<>':
-              case '!=':
-              case '$regex':
-                if (!isset($search['$and'])) {
-                  $search['$and'] = array();
-                }
-                $search['$and'][] = array(
-                  $attribute => $value
-                );
-                break 3;
+            case '=':
+            case '$lt':
+            case '<':
+            case '$lte':
+            case '<=':
+            case '$gt':
+            case '>':
+            case '$gte':
+            case '>=':
+            case '$in':
+            case '$nin':
+            case '$all':
+            case '$mod':
+            case '$ne':
+            case '<>':
+            case '!=':
+            case '$regex':
+              if (!isset($search['$and'])) {
+                $search['$and'] = array();
+              }
+              $search['$and'][] = array(
+                $attribute => $value
+              );
+              break 3;
             }
             if (!isset($search['$or'])) {
               $search['$or'] = array();
             }
             $search['$or'][] = array(
               $attribute => array(
-                  '=' => $v
+                '=' => $v
               )
             );
           }
@@ -88,7 +87,7 @@ class Driver extends Core\Stub implements DriverInterface
           }
           $search['$and'][] = array(
             $attribute => array(
-                '=' => $value
+              '=' => $value
             )
           );
         }
@@ -99,8 +98,8 @@ class Driver extends Core\Stub implements DriverInterface
 
   protected function isRegex($string)
   {
-    return ($string && is_string($string) && preg_match('/[^a-z0-9\s]/i', $string[0]) && $string[0] === substr($string, -1)
-      && preg_match($string, '') !== false);
+    return ($string && is_string($string) && preg_match('/[^a-z0-9\s]/i', $string[0])
+      && $string[0] === substr($string, -1) && preg_match($string, '') !== false);
   }
 
   protected function normalizeAttributes($class, &$attributes)
@@ -118,7 +117,10 @@ class Driver extends Core\Stub implements DriverInterface
       }
     }
     elseif ($value) {
-      switch ($class::cfg("attributes.$attribute.type")) {
+      switch ($type = $class::cfg("attributes.$attribute.type")) {
+      case is_array($type):
+        $value = explode(',', $value);
+        break;
       case 'date':
       case 'time':
       case 'datetime':

@@ -97,7 +97,7 @@ class Datasource extends Core\Stub
 
   public function count($class, $search = array(), $options = array())
   {
-    $search = $this->driver->normalizeSearch($search);
+    //$search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -120,7 +120,7 @@ class Datasource extends Core\Stub
 
   public function first($class, $search = array(), $options = array())
   {
-    $search = $this->driver->normalizeSearch($search);
+    //$search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -134,7 +134,7 @@ class Datasource extends Core\Stub
 
   public function read($class, $search = array(), $options = array())
   {
-    $search = $this->driver->normalizeSearch($search);
+    //$search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -161,7 +161,7 @@ class Datasource extends Core\Stub
 
   public function purge($class, $search = array(), $options = array())
   {
-    $search = $this->driver->normalizeSearch($search);
+    //$search = $this->driver->normalizeSearch($search);
     $cache = implode('::', array(
       $class
     ));
