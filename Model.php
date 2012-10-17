@@ -24,7 +24,7 @@ class Model extends Stub
 {
   public static $Controller;
   public static $View;
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'datasource' => array(
       'urls' => array(
         'default' => array(
@@ -32,6 +32,8 @@ class Model extends Stub
           'path' => ALDU_DEFAULT_DATASOURCE
         )
       ),
+      'search' => array(),
+      'options' => array('sort' => array('_', 'name')),
       'ldap' => array(
         'openldap' => array(
           'mappings' => array(
@@ -47,7 +49,7 @@ class Model extends Stub
         )
       )
     )
-  );
+  ));
   protected static $instances = array();
   protected static $datasources = array();
   protected static $extensions = array();
@@ -107,6 +109,10 @@ class Model extends Stub
   protected static function configure($configuration = array())
   {
     $class = get_called_class();
+    $configuration['attributes'] = $class::$attributes;
+    $configuration['extensions'] = $class::$extensions;
+    $configuration['relations'] = $class::$relations;
+    $configuration = parent::configure($configuration);
     if (!isset(self::$instances[$class])) {
       self::$instances[$class] = array();
     }
@@ -116,10 +122,7 @@ class Model extends Stub
         self::$datasources[$class][$function] = new Model\Datasource($url);
       }
     }
-    $configuration['attributes'] = $class::$attributes;
-    $configuration['extensions'] = $class::$extensions;
-    $configuration['relations'] = $class::$relations;
-    return parent::configure($configuration);
+    return $configuration;
   }
 
   public static function instance($id = 0, $model = null)
@@ -189,12 +192,12 @@ class Model extends Stub
 
   public function has($tag = null, $relation = array(), $search = array(), $options = array())
   {
-    static::datasource(__FUNCTION__)->has($this, $tag, $relation, $search, $options);
+    return static::datasource(__FUNCTION__)->has($this, $tag, $relation, $search, $options);
   }
 
   public function belongs($class = null, $relation = array(), $search = array(), $options = array())
   {
-    static::datasource(__FUNCTION__)->belongs($this, $class, $relation, $search, $options);
+    return static::datasource(__FUNCTION__)->belongs($this, $class, $relation, $search, $options);
   }
 
   public function save($models = array())
@@ -212,6 +215,9 @@ class Model extends Stub
 
   public static function first($search = array(), $options = array())
   {
+    if (!is_array($search)) {
+      $search = array('id' => $search);
+    }
     return self::_read(__FUNCTION__, $search, $options);
   }
 
@@ -257,6 +263,7 @@ class Model extends Stub
         );
       }
     }
+    $args[2] = array_replace_recursive($class::cfg('datasource.options'), $args[2]);
     return call_user_func_array(array(
       static::datasource($function),
       $function
@@ -270,6 +277,11 @@ class Model extends Stub
       $name = array_pop($name);
     }
     return $name;
+  }
+  
+  public function label()
+  {
+    return $this->name;
   }
 
   public static function authenticate($username, $password = null, $encrypted = false)

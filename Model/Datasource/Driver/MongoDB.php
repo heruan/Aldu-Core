@@ -26,11 +26,11 @@ use Mongo, MongoDBRef, MongoId, MongoDate, MongoRegex, MongoException;
 
 class MongoDB extends Datasource\Driver implements DriverInterface
 {
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'autoincrement' => array(
       'collection' => '_autoincrement'
     )
-  );
+  ));
   protected $conn;
   private $mongoIds = array();
 

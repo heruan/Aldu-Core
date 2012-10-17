@@ -137,7 +137,7 @@ class Form extends Helper\HTML
   public function unstack()
   {
     $stack = $this->node;
-    $this->node = array_pop($this->stack)->node;
+    $this->node = array_pop($this->stack);
     return $stack;
   }
 

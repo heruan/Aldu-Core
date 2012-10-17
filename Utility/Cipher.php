@@ -26,10 +26,10 @@ class Cipher extends Core\Stub
   protected $seed;
   protected $iv;
   
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'salt' => 'GegjenwivOsooHunRygNoyquikiccex1',
     'seed' => '76859309657453542496749683645'
-  );
+  ));
   
   public function __construct()
   {

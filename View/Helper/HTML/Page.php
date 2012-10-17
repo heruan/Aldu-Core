@@ -23,7 +23,7 @@ use Aldu\Core;
 
 class Page extends Helper\HTML
 {
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'title' => array(
       'separator' => ' - '
     ),
@@ -33,7 +33,7 @@ class Page extends Helper\HTML
         'name' => 'default', 'html' => 'index.html'
       )
     )
-  );
+  ));
   public $type;
   public $lang;
   public $head;
@@ -199,6 +199,9 @@ class Page extends Helper\HTML
           $node->append($this->ui->message($message, $priority));
         }
       }
+    }
+    if ($ui = static::cfg('ui.engine')) {
+      $this->ui->style($this);
     }
     return $this;
   }

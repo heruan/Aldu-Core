@@ -30,11 +30,11 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   const DEFAULT_PORT = 3306;
   const DATETIME_FORMAT = 'Y-m-d H:i:s';
   const INDEX_TABLE = '_index';
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'debug' => array(
       'all' => false, 'read' => false
     ), 'revisions' => false
-  );
+  ));
   protected $database;
 
   public function __construct($url, $parts)

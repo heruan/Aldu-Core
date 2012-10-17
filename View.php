@@ -31,7 +31,7 @@ class View extends Stub
   protected $request;
   protected $response;
 
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'shortcuts' => array(
       'static' => array(
         'index' => "Index of %s",
@@ -43,8 +43,8 @@ class View extends Stub
         'delete' => "Delete %s %s"
       )
     )
-  );
-
+  ));
+  
   public function __construct(Model $model, HTTP\Request $request = null, HTTP\Response $response = null)
   {
     parent::__construct();
@@ -65,28 +65,27 @@ class View extends Stub
       'value' => null,
       'model' => $this->model,
       'search' => array(),
-      'options' => array()
+      'options' => array('limit' => 10)
     ), $_);
     extract($_);
     $models = array();
     $model = is_object($model) ? $model : new $model();
-    if ($first) {
-      $models[''] = $this->locale->t('Select %s', $model->name());
-    }
     if ($value) {
       $form->values[$name] = $value;
     }
     foreach ($model->read($search, $options) as $m) {
-      $label = $m->title ? : ($m->name ? : $m->id);
-      $models[$m->id] = $label;
+      $models[$m->id] = $m->label();
     }
     $select = $form->select($name, array_merge($_, array(
       'options' => $models
     )));
-    if ($required && count($models) === 1) {
-      $select->append('a', $L->t('Add new'), array(
+    if ($required && empty($models)) {
+      $select->append('a', $this->locale->t('Add new'), array(
         'href' => $model->url('create')
       ));
+    }
+    if ($first) {
+      $select->node('select')->prepend('option', $this->locale->t('Select %s', $model->name()))->value = '';
     }
     return $select;
   }
@@ -107,9 +106,9 @@ class View extends Stub
         $form->select($field, array(
           'title' => $field,
           'options' => array_combine($type, $type),
-          'attributes' => array('multiple' => true),
+          'attributes' => array('multiple' => true)
           ));
-          break;
+        break;
       default:
         $form->$type($field, array(
           'title' => $field

@@ -44,7 +44,7 @@ class HTML extends DOM\Node
     );
     if (is_callable($callback)) {
       $node = call_user_func_array($callback, $args);
-      return new HTML($node, $this->document);
+      return new self($node, $this->document);
     }
     return null;
   }

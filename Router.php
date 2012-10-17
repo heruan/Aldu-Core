@@ -26,7 +26,7 @@ use Aldu\Core\Utility\Inflector;
 
 class Router extends Stub
 {
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'prefixes' => array(),
     'routes' => array(
       'view' => array(
@@ -38,7 +38,7 @@ class Router extends Stub
         'arguments' => array()
       )
     )
-  );
+  ));
 
   public $host;
   public $base;

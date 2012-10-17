@@ -29,29 +29,31 @@ class LDAP extends Datasource\Driver implements DriverInterface
   const FILTER_ALL = '(objectClass=*)';
   const DATETIME_FORMAT = 'U';
   protected static $configuration = array(
-    'debug' => array(
-      'all' => false
-    ),
-    'openldap' => array(
-      'authentication' => array(
-        'dn' => true
-      )
-    ),
-    'configurations' => array(
-      array(
-        'class' => 'Aldu\Core\Model',
-        'configuration' => array(
-          'datasource' => array(
-            'ldap' => array(
-              'openldap' => array(
-                'mappings' => array(
-                  'created' => 'createTimestamp',
-                  'updated' => 'modifyTimestamp'
-                )
-              ),
-              'ad' => array(
-                'mappings' => array(
-                  'created' => 'whenCreated', 'updated' => 'whenChanged'
+    __CLASS__ => array(
+      'debug' => array(
+        'all' => false
+      ),
+      'openldap' => array(
+        'authentication' => array(
+          'dn' => true
+        )
+      ),
+      'configurations' => array(
+        array(
+          'class' => 'Aldu\Core\Model',
+          'configuration' => array(
+            'datasource' => array(
+              'ldap' => array(
+                'openldap' => array(
+                  'mappings' => array(
+                    'created' => 'createTimestamp',
+                    'updated' => 'modifyTimestamp'
+                  )
+                ),
+                'ad' => array(
+                  'mappings' => array(
+                    'created' => 'whenCreated', 'updated' => 'whenChanged'
+                  )
                 )
               )
             )
@@ -289,7 +291,9 @@ class LDAP extends Datasource\Driver implements DriverInterface
             $v = $v->id;
           }
           elseif (is_array($v)) {
-            $where[] = $this->conditions($class, array($k => $v));
+            $where[] = $this->conditions($class, array(
+                $k => $v
+              ));
             continue 2;
           }
           elseif ($v instanceof DateTime) {
@@ -342,7 +346,9 @@ class LDAP extends Datasource\Driver implements DriverInterface
       }
     }
     foreach ($and as $_and) {
-      $where[] = $this->_conditions($class, array($_and));
+      $where[] = $this->_conditions($class, array(
+          $_and
+        ));
     }
     switch ($logic) {
     case '$not':
@@ -427,6 +433,8 @@ class LDAP extends Datasource\Driver implements DriverInterface
         $search['objectClass'] = $class::cfg(
           "datasource.ldap.$type.objectClass");
       }
+      $search = array_replace_recursive($search,
+        $class::cfg("datasource.ldap.$type.filter"));
       $filter = $this->conditions($class, $search);
     }
     $attributes = array_map(
@@ -441,9 +449,52 @@ class LDAP extends Datasource\Driver implements DriverInterface
     return ldap_search($this->link, $base, $filter, $attributes);
   }
 
-  public function first($class, $search = array())
+  protected function mapping($class, &$array, $flip = false)
+  {
+    $type = $class::cfg('datasource.ldap.type');
+    $keys = array();
+    if (!$map = $class::cfg("datasource.ldap.$type.mappings")) {
+      return $array;
+    }
+    $map = $flip ? array_flip($map) : $map;
+    if (!is_array($array)) {
+      return $array = array_search($array, $map) ? : $array;
+    }
+    foreach ($array as $k => $v) {
+      $keys[] = array_search($k, $map) ? : $k;
+    }
+    return $array = array_combine($keys, $array);
+  }
+
+  protected function options($class, $options = array(), &$search)
+  {
+    foreach ($options as $option => $value) {
+      switch ($option) {
+      case 'sort':
+      case 'order':
+        $sort = array();
+        if (!is_array($value)) {
+          $value = array(
+            $value => 1
+          );
+        }
+        $value = array_reverse($value);
+        foreach ($value as $k => $v) {
+          if (is_numeric($k)) {
+            $k = $v;
+            $v = 1;
+          }
+          $k = $this->mapping($class, $k, true);
+          ldap_sort($this->link, $search, $k);
+        }
+      }
+    }
+  }
+
+  public function first($class, $search = array(), $options = array())
   {
     $search = $this->search($class, $search);
+    $this->options($class, $options, $search);
     if (!$result = ldap_first_entry($this->link, $search)) {
       return null;
     }
@@ -454,17 +505,26 @@ class LDAP extends Datasource\Driver implements DriverInterface
     return new $class($this->normalize($class, $entry));
   }
 
-  public function read($class, $search = array())
+  public function read($class, $search = array(), $options = array())
   {
     $models = array();
     $search = $this->search($class, $search);
-    foreach (ldap_get_entries($this->link, $search) as $entry) {
-      if (!is_array($entry)) {
-        continue;
-      }
-      $models[] = new $class($this->normalize($class, $entry));
+    $this->options($class, $options, $search);
+    if ($result = ldap_first_entry($this->link, $search)) {
+      do {
+        if ($entry = ldap_get_attributes($this->link, $result)) {
+          $models[] = new $class($this->normalize($class, $entry));
+        }
+      } while ($result = ldap_next_entry($this->link, $result));
     }
     return $models;
+  }
+
+  public function count($class, $search = array(), $options = array())
+  {
+    $search = $this->search($class, $search);
+    $this->options($class, $options, $search);
+    return ldap_count_entries($this->link, $search);
   }
 
   public function save($models = array())
@@ -501,12 +561,12 @@ class LDAP extends Datasource\Driver implements DriverInterface
       }
     }
   }
-  
+
   public function has()
   {
     return array();
   }
-  
+
   public function belongs()
   {
     return array();

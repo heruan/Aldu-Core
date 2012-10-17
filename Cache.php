@@ -22,10 +22,10 @@ use Aldu\Core\Utility\ClassLoader;
 
 class Cache extends Stub
 {
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'enabled' => false,
     'engine' => 'APC'
-  );
+  ));
   public $enabled;
   protected $engine;
   protected $prefix;

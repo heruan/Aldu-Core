@@ -65,6 +65,7 @@ abstract class Stub
    * @param string $key
    * @param mixed $value
    */
+
   protected static function _cache($type, $key, $value = false)
   {
     $key = '_' . $key;
@@ -91,8 +92,8 @@ abstract class Stub
       if ($parent = get_parent_class($self)) {
         $config = $parent::configure();
       }
-      if (isset(static::$configuration)) {
-        $config = array_replace_recursive($config, static::$configuration);
+      if (isset(static::$configuration[$self])) {
+        $config = array_replace_recursive($config, static::$configuration[$self]);
       }
       if (is_dir(ALDU_CONFIG_DIR)) {
         if (ALDU_CACHE_FAILURE
@@ -111,11 +112,11 @@ abstract class Stub
           $config = array_replace_recursive($config, $_config[$self]);
         }
       }
-      static::$configuration = $config;
       self::$_configurations[$self] = $config;
     }
     if ($config) {
-      self::$_configurations[$self] = array_replace_recursive(self::$_configurations[$self], $config);
+      self::$_configurations[$self] = array_replace_recursive(
+        self::$_configurations[$self], $config);
     }
     return self::$_configurations[$self];
   }
@@ -126,16 +127,19 @@ abstract class Stub
    * @param string $key
    * @param mixed $value
    */
+
   public static function cfg($key = null, $value = null, $null = false)
   {
     $config = array();
     $self = get_called_class();
     $self::configure();
     if (is_null($key)) {
-      return isset(self::$_configurations[$self]) ? self::$_configurations[$self] : $config;
+      return isset(self::$_configurations[$self]) ? self::$_configurations[$self]
+        : $config;
     }
     if (is_array($key)) {
-      return self::$_configurations[$self] = array_replace_recursive(self::$_configurations[$self], $key);
+      return self::$_configurations[$self] = array_replace_recursive(
+        self::$_configurations[$self], $key);
     }
     if (!is_null($value) || $null) {
       self::$_configurations[$self] = array_replace_recursive(

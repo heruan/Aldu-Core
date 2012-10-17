@@ -43,7 +43,7 @@ $sla = SLA::first();
 class ODBC extends Datasource\Driver implements Datasource\DriverInterface
 {
   const DATETIME_FORMAT = 'YmdHis';
-  protected static $configuration = array(
+  protected static $configuration = array(__CLASS__ => array(
     'revisions' => false,
     'type' => 'db2',
     'db2' => array(
@@ -54,11 +54,10 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
         'field' => 'COLUMN_NAME',
         'type' => 'DATA_TYPE',
         'length' => 'LENGTH',
-        'null' => 'IS_NULLABLE',
-        'default' => 'COLUMN_DEFAULT'
+        'null' => 'IS_NULLABLE'
       )
     )
-  );
+  ));
 
   public function __construct($url, $parts)
   {
@@ -82,7 +81,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
     }
   }
 
-  protected function query()
+  public function query()
   {
     $debug = static::cfg('debug.all');
     $args = func_get_args();
@@ -123,8 +122,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
       static::cfg("$type.describe.field"),
       static::cfg("$type.describe.type"),
       static::cfg("$type.describe.length"),
-      static::cfg("$type.describe.null"),
-      static::cfg("$type.describe.default")
+      static::cfg("$type.describe.null")
     );
     $explode = explode('.', $table);
     $where = array(
@@ -136,10 +134,9 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
     $fields = array();
     foreach ($describe as $field) {
       $fields[$field[$select[0]]] = array(
-        'type' => $field[$select[1]],
-        'length' => $field[$select[2]],
-        'null' => $field[$select[3]] === 'Y' ? true : false,
-        'default' => $field[$select[4]]
+        'type' => trim($field[$select[1]]),
+        'length' => trim($field[$select[2]]),
+        'null' => trim($field[$select[3]]) === 'Y' ? true : false
       );
     }
     return array(
@@ -356,14 +353,18 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
             $v = trim($v, $v[0]);
           }
           $op = is_null($v) ? ($op === '=' ? 'IS' : 'IS NOT') : $op;
-          switch ($this->type($this->tableName($class), $k)) {
-            case is_null($v):
-              $v = 'NULL';
+          if (is_null($v)) {
+            $v = 'NULL';
+          }
+          else {
+            $type = $this->type($this->tableName($class), $k);
+            switch ($type) {
             case 'NUMERIC':
               $v = addslashes($v);
               break;
             default:
               $v = "'" . addslashes($v) . "'";
+            }
           }
           $where[] = "$k $op $v";
         }
@@ -464,18 +465,20 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
     foreach ($row as $field => $value) {
       $field = array_search($field, $class::cfg("datasource.odbc.mappings")) ? 
         : $field;
-      if (($type = $class::cfg("attributes.$field.type"))
-        && is_subclass_of($type, 'Aldu\Core\Model')) {
-        $value = $type::first(array(
-          'id' => $value
-        ));
-      }
-      else {
-        $value = trim($value);
-      }
+      $value = trim($value);
       $normalize[$field] = $value ? : null;
     }
     return $normalize;
+  }
+  
+  protected function normalizeModel(&$model)
+  {
+    $class = get_class($model);
+    foreach (get_object_vars($model) as $attribute => $value) {
+      if (($type = $class::cfg("attributes.$attribute.type")) && is_subclass_of($type, 'Aldu\Core\Model')) {
+        $model->$attribute = $type::instance($value);
+      }
+    }
   }
 
   protected function select($class, $search = array(), $options = array())
@@ -504,6 +507,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
       $row = $this->normalizeRow($class, $row);
       $this->normalizeAttributes($class, $row);
       $model = new $class($row);
+      $this->normalizeModel($model);
       $models[] = $model;
     }
     return $models;
@@ -548,10 +552,12 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
   public function belongs($tag, $model, $relation = array(), $search = array(),
     $options = array())
   {
+    return array();
   }
 
   public function has($model, $tag = null, $relation = array(),
     $search = array(), $options = array())
   {
+    return array();
   }
 }

@@ -28,6 +28,16 @@ class UI extends Helper\HTML
   {
     $this->document = $page->document;
   }
+  
+  public function style($node, $engine = null)
+  {
+    foreach ($node->node('input') as $input) {
+      $input->addClass('ui-widget ui-widget-content ui-corner-all');
+    }
+    foreach ($node->node('textarea') as $textarea) {
+      $textarea->addClass('ui-widget ui-widget-content ui-corner-all');
+    }
+  }
 
   public function message($text, $priority = LOG_INFO)
   {
