@@ -33,10 +33,17 @@ class View extends Stub
 
   protected static $configuration = array(
     'shortcuts' => array(
-      'index' => "Index of %s",
-      'create' => "Create new %s"
+      'static' => array(
+        'index' => "Index of %s",
+        'create' => "Create new %s"
+      ),
+      'model' => array(
+        'view' => "View %s %s",
+        'update' => "Edit %s %s",
+        'delete' => "Delete %s %s"
       )
-    );
+    )
+  );
 
   public function __construct(Model $model, HTTP\Request $request = null, HTTP\Response $response = null)
   {
@@ -99,7 +106,8 @@ class View extends Stub
       case is_array($type):
         $form->select($field, array(
           'title' => $field,
-          'options' => $type
+          'options' => array_combine($type, $type),
+          'attributes' => array('multiple' => true),
           ));
           break;
       default:
@@ -189,6 +197,7 @@ class View extends Stub
 
   public function update($model)
   {
+    $this->model = $model;
     switch ($this->render) {
     case 'page':
     default:
@@ -201,14 +210,24 @@ class View extends Stub
     }
   }
 
+  public function view($model)
+  {
+    $this->model = $model;
+  }
+
   public static function shortcuts($block, $element)
   {
     $ul = new Helper\HTML('ul.menu.clearfix.aldu-core-view-shortcuts');
     $router = Router::instance();
     $locale = Locale::instance();
     if (($route = $router->current) && $route->controller) {
-       foreach (static::cfg('shortcuts') as $action => $title) {
+      foreach (static::cfg('shortcuts.static') as $action => $title) {
         $ul->li()->a($locale->t($title, $route->controller->model->name()))->href = $route->controller->model->url($action);
+      }
+      if ($route->controller->model->id) {
+        foreach (static::cfg('shortcuts.model') as $action => $title) {
+          $ul->li()->a($locale->t($title, $route->controller->model->name(), $route->controller->model->id))->href = $route->controller->model->url($action);
+        }
       }
     }
     return $ul;

@@ -20,9 +20,26 @@
 namespace Aldu\Core\View\Helper\HTML\Models;
 use Aldu\Core;
 
-class Block extends Core\Model
+class Block extends Core\Locale\Localized
 {
   public $name;
   public $position;
   public $callback;
+  public $title;
+  public $description;
+  public $showtitle;
+
+  protected static $attributes = array(
+    'showtitle' => array(
+      'type' => 'boolean'
+    )
+  );
+  protected static $extensions = array(
+    'localized' => array(
+      'attributes' => array(
+        'title',
+        'description'
+      )
+    )
+  );
 }

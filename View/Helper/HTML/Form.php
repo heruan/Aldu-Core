@@ -284,7 +284,8 @@ class Form extends Helper\HTML
       $div->append($element);
       break;
     case 'select':
-      if (is_array($value)) {
+      $aot = 'tag';
+      if (is_array($value)) {/*
         $__name = $_name;
         extract($value);
         $relation = isset($relation) ? $relation : array();
@@ -293,7 +294,7 @@ class Form extends Helper\HTML
         if ($relation) {
           $_name = $__name . "[$aot][relations][$value][{$relation['key']}][]";
           $value = $relation['value'];
-        }
+        }*/
       }
       $element = $this->create('select', array_merge($attributes, array(
         'id' => $id,

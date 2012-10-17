@@ -439,11 +439,15 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   protected function normalizeRow($class, &$row)
   {
     foreach ($row as $field => &$value) {
-      if (($type = $class::cfg("attributes.$field.type"))
-        && is_subclass_of($type, 'Aldu\Core\Model')) {
-        $value = $type::first(array(
-          'id' => $value
-        ));
+    }
+  }
+
+  protected function normalizeModel(&$model)
+  {
+    $class = get_class($model);
+    foreach (get_object_vars($model) as $attribute => $value) {
+      if (($type = $class::cfg("attributes.$attribute.type")) && is_subclass_of($type, 'Aldu\Core\Model')) {
+        $model->$attribute = $type::instance($value);
       }
     }
   }
@@ -786,6 +790,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $this->normalizeRow($class, $row);
       $this->normalizeAttributes($class, $row);
       $model = new $class($row);
+      $this->normalizeModel($model);
       $models[] = $model;
     }
     return $models;

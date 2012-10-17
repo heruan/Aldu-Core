@@ -161,6 +161,9 @@ class Page extends Helper\HTML
             'position' => $position
           )) as $block) {
           $this->router->openContext($block->name);
+          if ($block->showtitle) {
+            $node->append('h2.aldu-core-view-helper-html-page-block-title', $block->title);
+          }
           if (is_callable($block->callback)) {
             $node->append(call_user_func($block->callback, $block, $node));
           }

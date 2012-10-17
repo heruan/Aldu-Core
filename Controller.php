@@ -97,8 +97,10 @@ class Controller extends Event\Listener
         $model->save();
       }
     }
-    $model = $this->model->first(array('id' => $id));
-    return $this->view->update($model);
+    if ($model = $this->model->first(array('id' => $id))) {
+      $this->model = $model;
+    }
+    return $this->view->update($this->model);
   }
 
   public function create()
@@ -115,7 +117,9 @@ class Controller extends Event\Listener
 
   public function view($id)
   {
-    $model = $this->model->first(array('id' => $id));
-    return $this->view->view($model);
+    if ($model = $this->model->first(array('id' => $id))) {
+      $this->model = $model;
+    }
+    return $this->view->view($this->model);
   }
 }

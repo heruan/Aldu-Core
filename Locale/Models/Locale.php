@@ -19,7 +19,16 @@
 namespace Aldu\Core\Locale\Models;
 use Aldu\Core;
 
-class Locale extends Core\Model
+class Locale extends Core\Locale\Localized
 {
   public $name;
+  public $title;
+
+  protected static $extensions = array(
+    'localized' => array(
+      'attributes' => array(
+        'title'
+      )
+    )
+  );
 }
