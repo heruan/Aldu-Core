@@ -203,7 +203,7 @@ class Form extends Helper\HTML
     ));
     unset($attributes['class']);
     $this->append($div);
-    $label = $title ? $this->create('label', $title, array(
+    $label = $title ? $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
         'for' => $id
       )) : null;
     switch ($type) {
@@ -479,6 +479,7 @@ class Form extends Helper\HTML
       }
     }
     $element->form = $this->id;
+    $element->addClass("aldu-core-view-helper-html-form-$type");
     $this->elements[$name] = $div;
     return $div;
   }

@@ -44,7 +44,7 @@ class View extends Stub
       )
     )
   ));
-  
+
   public function __construct(Model $model, HTTP\Request $request = null, HTTP\Response $response = null)
   {
     parent::__construct();
@@ -90,28 +90,39 @@ class View extends Stub
     return $select;
   }
 
-  public function form($model, $action)
+  public function form($model, $action, $options = array())
   {
     $form = new Helper\HTML\Form($model, $action);
-    foreach ($model->__toArray() as $field => $value) {
-      $type = $this->model->cfg("attributes.$field.type") ? : 'text';
+    $fields = static::cfg('form.fields') ?: array_keys($model->__toArray());
+    foreach ($fields as $field => $options) {
+      if (is_numeric($field)) {
+        $field = $options;
+        $title = ucfirst($field);
+        $options = array();
+      }
+      extract(array_merge(array(
+        'title' => ucfirst($field),
+        'type' => $this->model->cfg("attributes.$field.type") ? : 'text',
+        'attributes' => array()
+        ), $options));
       switch ($type) {
       case is_subclass_of($type, 'Aldu\Core\Model', true):
         $this->select($form, $field, array(
-          'title' => $field,
+          'title' => $title,
           'model' => $type
         ));
         break;
       case is_array($type):
         $form->select($field, array(
-          'title' => $field,
+          'title' => $title,
           'options' => array_combine($type, $type),
           'attributes' => array('multiple' => true)
           ));
         break;
       default:
         $form->$type($field, array(
-          'title' => $field
+          'title' => $title,
+          'attributes' => $attributes
         ));
       }
     }

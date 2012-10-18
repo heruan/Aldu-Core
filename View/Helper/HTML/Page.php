@@ -89,6 +89,7 @@ class Page extends Helper\HTML
     if (is_array($title)) {
       $title = implode(array_filter($separator, $title));
     }
+    $this->body->node('.aldu-core-view-helper-html-page-title')->text($title);
     $this->title
       ->text(
         implode($separator,

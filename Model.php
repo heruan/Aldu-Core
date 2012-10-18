@@ -33,7 +33,7 @@ class Model extends Stub
         )
       ),
       'search' => array(),
-      'options' => array('sort' => array('_', 'name')),
+      'options' => array('sort' => array('_' => 1)),
       'ldap' => array(
         'openldap' => array(
           'mappings' => array(
@@ -278,7 +278,7 @@ class Model extends Stub
     }
     return $name;
   }
-  
+
   public function label()
   {
     return $this->name;
