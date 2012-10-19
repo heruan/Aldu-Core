@@ -44,6 +44,9 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
 {
   const DATETIME_FORMAT = 'YmdHis';
   protected static $configuration = array(__CLASS__ => array(
+    'debug' => array(
+      'read' => false
+    ),
     'revisions' => false,
     'type' => 'db2',
     'db2' => array(
@@ -323,8 +326,8 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
             $v = array_shift($condition);
             break;
           case '$regex':
-            $op = 'REGEXP';
-            $v = array_shift($condition);
+            $op = 'LIKE';
+            $v = '%' . array_shift($condition) . '%';
             break;
           default:
             $v = array_shift($condition);
@@ -348,13 +351,14 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
           elseif ($v instanceof DateTime) {
             $v = $v->format(self::DATETIME_FORMAT);
           }
-          elseif ($this->isRegex($v)) {
-            $op = 'REGEXP';
-            $v = trim($v, $v[0]);
-          }
           $op = is_null($v) ? ($op === '=' ? 'IS' : 'IS NOT') : $op;
           if (is_null($v)) {
             $v = 'NULL';
+          }
+          elseif ($this->isRegex($v)) {
+            $k = "LCASE($k)";
+            $op = 'LIKE';
+            $v = "'%" . strtolower(addslashes(trim($v, $v[0]))) . "%'";
           }
           else {
             $type = $this->type($this->tableName($class), $k);

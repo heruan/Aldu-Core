@@ -34,12 +34,12 @@ class View extends Stub
   protected static $configuration = array(__CLASS__ => array(
     'shortcuts' => array(
       'static' => array(
-        'index' => "Index of %s",
-        'create' => "Create new %s"
+        'browse' => "Browse {%s:pluralize}",
+        'add' => "Create %s"
       ),
       'model' => array(
-        'view' => "View %s %s",
-        'update' => "Edit %s %s",
+        'read' => "Read %s %s",
+        'edit' => "Edit %s %s",
         'delete' => "Delete %s %s"
       )
     )
@@ -81,7 +81,7 @@ class View extends Stub
     )));
     if ($required && empty($models)) {
       $select->append('a', $this->locale->t('Add new'), array(
-        'href' => $model->url('create')
+        'href' => $model->url('add')
       ));
     }
     if ($first) {
@@ -178,9 +178,13 @@ class View extends Stub
     return $table;
   }
 
-  public function index($models = array(), $offset = 0, $limit = 10)
+  public function browse($models = array())
   {
-    switch ($this->render) {
+    $render = $this->request->query('render') ?: $this->render;
+    switch ($render) {
+    case 'json':
+      $this->response->type('json');
+      return $this->response->body(json_encode($models));
     case 'page':
     default:
       $page = new Helper\HTML\Page();
@@ -191,7 +195,7 @@ class View extends Stub
     }
   }
 
-  public function create()
+  public function add()
   {
     switch ($this->render) {
     case 'page':
@@ -205,7 +209,7 @@ class View extends Stub
     }
   }
 
-  public function update($model)
+  public function edit($model)
   {
     $this->model = $model;
     switch ($this->render) {
@@ -220,7 +224,7 @@ class View extends Stub
     }
   }
 
-  public function view($model)
+  public function read($model)
   {
     $this->model = $model;
   }
@@ -232,11 +236,16 @@ class View extends Stub
     $locale = Locale::instance();
     if (($route = $router->current) && $route->controller) {
       foreach (static::cfg('shortcuts.static') as $action => $title) {
-        $ul->li()->a($locale->t($title, $route->controller->model->name()))->href = $route->controller->model->url($action);
+        if ($route->controller->model->authorized($router->request->aro, $action)) {
+          $ul->li()->a($locale->t($title, $route->controller->model->name()))->href = $route->controller->model->url($action);
+        }
       }
-      if ($route->controller->model->id) {
+      if ($route->controller->view->model->id) {
+        $model = $route->controller->view->model;
         foreach (static::cfg('shortcuts.model') as $action => $title) {
-          $ul->li()->a($locale->t($title, $route->controller->model->name(), $route->controller->model->id))->href = $route->controller->model->url($action);
+          if ($model->authorized($this->request->aro, $action)) {
+            $ul->li()->a($locale->t($title, $model->name(), $model->id))->href = $model->url($action);
+          }
         }
       }
     }

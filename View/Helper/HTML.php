@@ -79,6 +79,7 @@ class HTML extends DOM\Node
     $classes = explode(' ', $this->class);
     $classes[] = $class;
     $this->class = implode(' ', array_unique($classes));
+    return $this;
   }
 
   public function data($name, $value = null)
@@ -88,11 +89,12 @@ class HTML extends DOM\Node
         $n = "data-$n";
         $this->$n = $v;
       }
-      return $name;
+      return $this;
     }
     $name = "data-$name";
     if ($value) {
       $this->$name = $value;
+      return $this;
     }
     return $this->$name;
   }

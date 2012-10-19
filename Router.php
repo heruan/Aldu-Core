@@ -26,19 +26,24 @@ use Aldu\Core\Utility\Inflector;
 
 class Router extends Stub
 {
-  protected static $configuration = array(__CLASS__ => array(
-    'prefixes' => array(),
-    'routes' => array(
-      'view' => array(
-        'path' => '%controller/%arg~#[0-9]+#/%action:?', 'action' => 'view',
-        'arguments' => array()
-      ),
-      'index' => array(
-        'path' => '%controller/%action/%arg:*', 'action' => 'index',
-        'arguments' => array()
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'prefixes' => array(),
+      'routes' => array(
+        'action' => array(
+          'path' => '%controller/%action/%arg:*', 'arguments' => array()
+        ),
+        'view' => array(
+          'path' => '%controller/%arg/%action:?', 'action' => 'view',
+          'arguments' => array()
+        ),
+        'browse' => array(
+          'path' => '%controller/%arg:*', 'action' => 'browse',
+          'arguments' => array()
+        )
       )
     )
-  ));
+  );
 
   public $host;
   public $base;
@@ -51,8 +56,8 @@ class Router extends Stub
   public $basePath;
   public $fullPath;
   public $current;
-  protected $request;
-  protected $response;
+  public $request;
+  public $response;
   protected $contexts = array();
 
   public function __construct(HTTP\Request $request, HTTP\Response $response)
@@ -123,7 +128,7 @@ class Router extends Stub
     }
     $path = implode('/', $steps);
     $controller = $this->_controller($route);
-    $action = $this->_action($route, $controller);
+    $action = null;
     $arguments = array();
     do {
       if ($route->path == $path) {
@@ -224,7 +229,9 @@ class Router extends Stub
             $action = $method;
             array_shift($steps);
           }
-          $action = $this->_action($route, $controller, $action);
+          if (!$min) {
+            $action = $this->_action($route, $controller, $action);
+          }
           if (!$action) continue 3;
           break;
         case '%arg':
@@ -254,17 +261,18 @@ class Router extends Stub
         }
       }
     } while (false);
-
+    $action = $this->_action($route, $controller, $action);
     if (!$controller || !$action) {
       return null;
     }
-    return new Router\Models\Route(array(
-      'host' => $this->host, 'path' => $this->path,
-      'namespace' => $route->namespace, 'controller' => $controller,
-      'action' => $action,
-      'arguments' => is_array($route->arguments) ? $arguments
-          + $route->arguments : $arguments + explode('/', $route->arguments)
-    ));
+    return new Router\Models\Route(
+      array(
+        'host' => $this->host, 'path' => $this->path,
+        'namespace' => $route->namespace, 'controller' => $controller,
+        'action' => $action,
+        'arguments' => is_array($route->arguments) ? $arguments
+            + $route->arguments : $arguments + explode('/', $route->arguments)
+      ));
   }
 
   protected function _controller($route, $controller = null)

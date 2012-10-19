@@ -17,6 +17,7 @@
  */
 
 namespace Aldu\Core;
+use Aldu\Core\Utility\Inflector;
 
 class Locale extends Stub
 {
@@ -24,6 +25,13 @@ class Locale extends Stub
   {
     $args = func_get_args();
     $text = array_shift($args);
+    $matches = array();
+    preg_match_all('/\{(.+):(\w+)\}/', $text, $matches);
+    $matches[0] = array_map(function($pattern) { return "/$pattern/"; }, $matches[0]);
+    $text = preg_replace($matches[0], $matches[1], $text);
+    foreach ($matches[2] as $i => $inflection) {
+      $args[$i] = Inflector::$inflection($args[$i]);
+    }
     return vsprintf(_($text), $args);
   }
 }

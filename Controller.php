@@ -19,6 +19,8 @@
 namespace Aldu\Core;
 use Aldu\Core\Net\HTTP;
 use Aldu\Core\Utility\ClassLoader;
+use Aldu\Core\Utility\Inflector;
+use DateTime;
 
 class Controller extends Event\Listener
 {
@@ -27,10 +29,11 @@ class Controller extends Event\Listener
   protected $request;
   protected $response;
 
-  public function __construct(HTTP\Request $request = null, HTTP\Response $response = null)
+  public function __construct(HTTP\Request $request = null,
+    HTTP\Response $response = null)
   {
-    $this->request = $request ?: HTTP\Request::instance();
-    $this->response = $response ?: HTTP\Response::instance();
+    $this->request = $request ? : HTTP\Request::instance();
+    $this->response = $response ? : HTTP\Response::instance();
     $this->router = Router::instance();
     $self = get_class($this);
     $parts = explode(NS, $self);
@@ -72,24 +75,28 @@ class Controller extends Event\Listener
     $this->model->__attach($this->view);
   }
 
-  public function index($offset = 0, $limit = 10)
+  public function browse($offset = 0, $limit = 10)
   {
-    $models = $this->model->read(array(), array('skip' => $offset, 'limit' => $limit));
-    return $this->view->index($models, $offset, $limit);
+    $search = $this->request->query('search');
+    $options = array_merge($this->request->query('options'),
+      array(
+        'skip' => $offset, 'limit' => $limit
+      ));
+    $models = $this->model->read($search, $options);
+    return $this->view->browse($models);
   }
 
-  public function add()
+  public function read($id)
   {
-    return $this->view->create();
+    if ($model = $this->model->first(array(
+        'id' => $id
+      ))) {
+    }
+    return $this->view->read($model);
   }
 
   public function edit($id)
   {
-    return $this->update($id);
-  }
-
-  public function update($id)
-  {
     if ($this->request->is('post')) {
       $modelClass = get_class($this->model);
       foreach ($this->request->data($modelClass) as $index => $attributes) {
@@ -97,29 +104,101 @@ class Controller extends Event\Listener
         $model->save();
       }
     }
-    if ($model = $this->model->first(array('id' => $id))) {
-      $this->model = $model;
+    if ($model = $this->model->first(array(
+        'id' => $id
+      ))) {
     }
-    return $this->view->update($this->model);
+    return $this->view->edit($model);
   }
 
-  public function create()
+  public function add()
   {
     if ($this->request->is('post')) {
-      $modelClass = get_class($this->model);
-      foreach ($this->request->data($modelClass) as $index => $attributes) {
-        $model = new $modelClass($attributes);
-        $model->save();
-      }
+      $this->post(__FUNCTION__, $this->request->data());
     }
-    return $this->view->create();
+    return $this->view->add();
   }
 
-  public function view($id)
+  protected function post($action, $data = array())
   {
-    if ($model = $this->model->first(array('id' => $id))) {
-      $this->model = $model;
+    foreach ($data as $class => $array) {
+      if (!ClassLoader::classExists($class)) {
+        continue;
+      }
+      $model = new $class();
+      $tags = array(
+        '+has' => array(), '-has' => array(),
+        '+belongs' => array(), '-belongs' => array()
+      );
+      while (list($index, $attributes) = each($array)) {
+        foreach ($attributes as $attribute => $value) {
+          if (ClassLoader::classExists($attribute)) {
+            // TODO relationships
+          }
+          elseif ($model->authorized($this->request->aro, $action, $attribute)) {
+            $type = $class::cfg("attributes.$attribute.type");
+            switch ($type) {
+            case is_subclass_of($type, 'Aldu\Core\Model'):
+              if ($$type = $type::first($value)) {
+                $value = $$type;
+              }
+              break;
+            case 'datetime':
+              $value = DateTime::createFromFormat(ALDU_DATETIME_FORMAT, $value);
+              break;
+            }
+            $model->$attribute = $value;
+          }
+        }
+        if ($model->authorized($this->request->aro, $action)) {// && $model->save()) {
+          var_dump($model);
+          $this->response
+            ->message(
+              $this->view->locale
+                ->t('%s %s successfully %s.', $model->name(), $model->id,
+                  Inflector::pastParticiple($action)));
+          foreach ($tags as $type => $array) {
+            foreach ($array as $tag) {
+              extract($tag);
+              switch ($type) {
+              case '-has':
+                if ($model->authorized($this->request->aro, $action, $tag)) {
+                  $model->untag($tag);
+                }
+                break;
+              case '+has':
+                if ($model->authorized($this->request->aro, $action, $tag)) {
+                  $model->tag($tag, $relation);
+                }
+                break;
+              case '-belongs':
+                if ($tag->authorized($this->request->aro, $action)) {
+                  $tag->untag($model);
+                }
+                break;
+              case '+belongs':
+                if ($tag->authorized($this->request->aro, $action)) {
+                  $tag->tag($model, $relation);
+                }
+                break;
+              }
+            }
+          }
+        }
+        else {
+          $this->response->message($this->view->locale->t('Cannot %s %s.', $action, $model->name()), LOG_ERR);
+        }
+      }
     }
-    return $this->view->view($this->model);
   }
+
+  public function delete($id)
+  {
+    if ($model = $this->model->first(array(
+        'id' => $id
+      ))) {
+    }
+    return $this->view->delete($model);
+  }
+
 }

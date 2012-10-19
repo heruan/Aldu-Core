@@ -119,7 +119,21 @@ class Node extends Helper\DOM implements Iterator, Countable
         return $this->append($node);
     }
   }
-
+  
+  public function shift()
+  {
+    $new = $this->first();
+    $this->remove();
+    return $new;
+  }
+  
+  public function pop()
+  {
+    $new = $this->last();
+    $this->remove();
+    return $new;
+  }
+  
   public function create()
   {
     return call_user_func_array(array($this->document, 'create'), func_get_args());

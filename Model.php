@@ -73,7 +73,7 @@ class Model extends Stub
     'acl' => array(
       'type' => array(
         'read',
-        'update',
+        'edit',
         'delete'
       ),
       'default' => array(
@@ -129,6 +129,8 @@ class Model extends Stub
   {
     $class = get_called_class();
     $class::configure();
+    end(self::$instances[$class]);
+    $id = $id ?: key($class::$instances[$class]);
     if (!isset(self::$instances[$class][$id])) {
       self::$instances[$class][$id] = $class::first(array('id' => $id));
     }
@@ -281,7 +283,8 @@ class Model extends Stub
 
   public function label()
   {
-    return $this->name;
+    $label = static::cfg('label') ?: 'name';
+    return $this->$label;
   }
 
   public static function authenticate($username, $password = null, $encrypted = false)
@@ -296,6 +299,11 @@ class Model extends Stub
 
   public function authorized($aro, $action = 'read', $attribute = null)
   {
+    foreach (static::cfg('acls') as $acl) {
+      if (is_a($aro, $acl['model']) && in_array($action, $acl['actions'])) {
+        return true;
+      }
+    }
     if ($this->acl && in_array($action, $this->acl)) {
       return true;
     }
