@@ -110,6 +110,26 @@ class Node extends Helper\DOM implements Iterator, Countable
     }
   }
 
+  public function __isset($name)
+  {
+    if ($this->node instanceof NodeList) {
+      return false;
+    }
+    return $this->node->hasAttribute($name);
+  }
+
+  public function __unset($name)
+  {
+    if ($this->node instanceof NodeList) {
+      foreach ($this->node as $node) {
+        $node->removeAttribute($name);
+      }
+    }
+    else {
+      $this->node-removeAttribute($name);
+    }
+  }
+
   public function __call($name, $arguments)
   {
     switch ($name) {
@@ -119,21 +139,21 @@ class Node extends Helper\DOM implements Iterator, Countable
         return $this->append($node);
     }
   }
-  
+
   public function shift()
   {
     $new = $this->first();
     $this->remove();
     return $new;
   }
-  
+
   public function pop()
   {
     $new = $this->last();
     $this->remove();
     return $new;
   }
-  
+
   public function create()
   {
     return call_user_func_array(array($this->document, 'create'), func_get_args());
@@ -272,7 +292,7 @@ class Node extends Helper\DOM implements Iterator, Countable
     }
     return array_shift($nodes);
   }
-  
+
   public function import($document)
   {
     $this->document = $document;

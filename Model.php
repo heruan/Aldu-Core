@@ -24,87 +24,78 @@ class Model extends Stub
 {
   public static $Controller;
   public static $View;
-  protected static $configuration = array(__CLASS__ => array(
-    'datasource' => array(
-      'urls' => array(
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'acls' => array(
         'default' => array(
-          'scheme' => 'sqlite',
-          'path' => ALDU_DEFAULT_DATASOURCE
+          'model' => __CLASS__, 'actions' => array(
+            'browse'
+          )
         )
       ),
-      'search' => array(),
-      'options' => array('sort' => array('_' => 1)),
-      'ldap' => array(
-        'openldap' => array(
-          'mappings' => array(
-            'created' => 'createTimestamp',
-            'updated' => 'modifyTimestamp'
+      'datasource' => array(
+        'urls' => array(
+          'default' => array(
+            'scheme' => 'sqlite', 'path' => ALDU_DEFAULT_DATASOURCE
+          )
+        ), 'search' => array(), 'options' => array(
+          'sort' => array(
+            '_' => 1
           )
         ),
-        'ad' => array(
-          'mappings' => array(
-            'created' => 'whenCreated',
-            'updated' => 'whenChanged'
+        'ldap' => array(
+          'openldap' => array(
+            'mappings' => array(
+              'created' => 'createTimestamp', 'updated' => 'modifyTimestamp'
+            )
+          ),
+          'ad' => array(
+            'mappings' => array(
+              'created' => 'whenCreated', 'updated' => 'whenChanged'
+            )
           )
         )
       )
     )
-  ));
+  );
   protected static $instances = array();
   protected static $datasources = array();
   protected static $extensions = array();
   protected static $relations = array(
     'has' => array(
       'Aldu\Core\Model' => array(
+        'created' => array('type' => 'datetime'),
         '_' => array(
-          'type' => 'int',
-          'null' => false,
-          'default' => 0
+          'type' => 'int', 'null' => false, 'default' => 0
         )
       )
     )
   );
   protected static $attributes = array(
     'id' => array(
-      'type' => 'int',
-      'null' => false,
-      'other' => 'unsigned'
-    ),
-    'acl' => array(
+      'type' => 'int', 'null' => false, 'other' => 'unsigned'
+    ), 'acl' => array(
       'type' => array(
-        'read',
-        'edit',
-        'delete'
-      ),
-      'default' => array(
+        'read', 'edit', 'delete'
+      ), 'default' => array(
         'read'
       )
-    ),
-    'created' => array(
+    ), 'created' => array(
       'type' => 'datetime'
-    ),
-    'updated' => array(
+    ), 'updated' => array(
       'type' => 'datetime'
-    ),
-    '_' => array(
-      'type' => 'int',
-      'null' => false,
-      'default' => 0
+    ), '_' => array(
+      'type' => 'int', 'null' => false, 'default' => 0
     )
   );
 
   public $id;
-  public $acl;
+  public $acl = array(
+    'read'
+  );
   public $created;
   public $updated;
   public $_ = 0;
-
-  /**
-   *
-   * Enter description here ...
-   * @param unknown_type $configuration
-   * @deprecated
-   */
 
   protected static function configure($configuration = array())
   {
@@ -127,12 +118,15 @@ class Model extends Stub
 
   public static function instance($id = 0, $model = null)
   {
+    if (!$id) {
+      return null;
+    }
     $class = get_called_class();
     $class::configure();
-    end(self::$instances[$class]);
-    $id = $id ?: key($class::$instances[$class]);
     if (!isset(self::$instances[$class][$id])) {
-      self::$instances[$class][$id] = $class::first(array('id' => $id));
+      self::$instances[$class][$id] = $class::first(array(
+        'id' => $id
+      ));
     }
     return self::$instances[$class][$id];
   }
@@ -162,11 +156,14 @@ class Model extends Stub
     }
   }
 
-  public function __toArray()
+  public function __toArray($safe = false)
   {
     $array = array();
     foreach (get_object_vars($this) as $name => $attribute) {
-      if ($attribute instanceof DateTime) {
+      if ($safe && $attribute instanceof self) {
+        $attribute = array('class' => get_class($attribute), 'id' => $attribute->id);
+      }
+      elseif ($attribute instanceof DateTime) {
         $attribute = $attribute->format(ALDU_DATETIME_FORMAT);
       }
       elseif ($attribute instanceof self) {
@@ -175,6 +172,11 @@ class Model extends Stub
       $array[$name] = $attribute;
     }
     return $array;
+  }
+
+  public function __toJSON()
+  {
+    return json_encode($this->__toArray(true));
   }
 
   public function tag($tags, $relation = array())
@@ -202,12 +204,9 @@ class Model extends Stub
     return static::datasource(__FUNCTION__)->belongs($this, $class, $relation, $search, $options);
   }
 
-  public function save($models = array())
+  public function save()
   {
-    if (empty($models)) {
-      $models[] = $this;
-    }
-    return static::datasource(__FUNCTION__)->save($models);
+    return static::datasource(__FUNCTION__)->save($this);
   }
 
   public static function count($search = array(), $options = array())
@@ -218,7 +217,9 @@ class Model extends Stub
   public static function first($search = array(), $options = array())
   {
     if (!is_array($search)) {
-      $search = array('id' => $search);
+      $search = array(
+        'id' => $search
+      );
     }
     return self::_read(__FUNCTION__, $search, $options);
   }
@@ -240,42 +241,30 @@ class Model extends Stub
     $args = func_get_args();
     $function = $args[0];
     $args[0] = $class;
-    if ($class::cfg('datasource.acl')) {
-      $args[1]['$or'][] = array(
-        'acl' => array(
-          '=' => array(
-            'read'
-          )
-        )
-      );
-      if ($request->aro) {
-        $belongs = $request->aro->belongs();
-        $belongs[] = $request->aro;
-        $args[1]['$or'][] = array(
-          '$belongs' => array(
-            $belongs,
-            array(
-              'acl' => array(
-                '=' => array(
-                  'read'
-                )
-              )
-            )
-          )
-        );
-      }
-    }
+    $args[1] = array_replace_recursive($class::cfg('datasource.search'), $args[1]);
     $args[2] = array_replace_recursive($class::cfg('datasource.options'), $args[2]);
-    return call_user_func_array(array(
-      static::datasource($function),
-      $function
+    $return = call_user_func_array(array(
+      static::datasource($function), $function
     ), $args);
+    if (is_array($return)) {
+      return array_filter($return, array(get_called_class(), 'authorize'));
+    }
+    elseif (is_object($return)) {
+      return static::authorize($return) ? $return : null;
+    }
+    return $return;
   }
 
-  public function name()
+  public static function authorize($model)
+  {
+    $request = Net\HTTP\Request::instance();
+    return $model->authorized($request->aro);
+  }
+
+  public static function name()
   {
     if (!$name = static::cfg('name')) {
-      $name = explode(NS, get_class($this));
+      $name = explode(NS, get_called_class());
       $name = array_pop($name);
     }
     return $name;
@@ -283,7 +272,7 @@ class Model extends Stub
 
   public function label()
   {
-    $label = static::cfg('label') ?: 'name';
+    $label = static::cfg('label') ? : 'name';
     return $this->$label;
   }
 
@@ -297,17 +286,48 @@ class Model extends Stub
     return static::datasource(__FUNCTION__)->authenticate($class, $username, $password);
   }
 
-  public function authorized($aro, $action = 'read', $attribute = null)
+  protected function _authorized($aro, $action = 'read', $attribute = null)
   {
-    foreach (static::cfg('acls') as $acl) {
-      if (is_a($aro, $acl['model']) && in_array($action, $acl['actions'])) {
+    if (!$aro || ($this->acl && in_array($action, $this->acl))) {
+      return true;
+    }
+    $belongs = array_merge(array($aro), $aro->belongs());
+    foreach ($belongs as $belongsAro) {
+      if ($this->belongs($belongsAro, array('acl' => array(array($action))))) {
         return true;
       }
     }
-    if ($this->acl && in_array($action, $this->acl)) {
-      return true;
+    foreach (static::cfg('acls') as $acl) {
+      extract(array_merge(array('search' => array(), 'options' => array(), 'actions' => array()), $acl), EXTR_PREFIX_ALL, 'acl');
+      if (is_a($aro, $acl_model)) {
+        return in_array($action, $acl_actions);
+      }
+      foreach ($acl_model::read($acl_search, $acl_options) as $owner) {
+        if ($owner->has($aro) && in_array($action, $acl_actions)) {
+          return true;
+        }
+      }
     }
     return false;
+  }
+
+  public function authorized($aro, $action = 'read', $attribute = null)
+  {
+    $Cache = Cache::instance();
+    $cache = implode('::', array_filter(array(
+      get_class($this),
+      __FUNCTION__,
+      $this->id,
+      get_class($aro),
+      $aro ? $aro->id : null,
+      $action,
+      $attribute
+    )));
+    if (ALDU_CACHE_FAILURE === ($authorized = $Cache->fetch($cache))) {
+      $authorized = $this->_authorized($aro, $action, $attribute);
+      $Cache->store($cache, $authorized);
+    }
+    return $authorized;
   }
 
   public function url($action = 'view', $_ = array())
@@ -317,10 +337,7 @@ class Model extends Stub
       $action = 'view';
     }
     extract(array_merge(array(
-      'prefix' => null,
-      'absolute' => false,
-      'arguments' => array(),
-      'render' => null
+      'prefix' => null, 'absolute' => false, 'arguments' => array(), 'render' => null
     ), $_));
     $arguments = array_filter($arguments);
     $R = Router::instance();
@@ -331,8 +348,7 @@ class Model extends Stub
       $action = is_bool($action) ? '' : $action;
       $parts = explode(NS, get_class($this));
       $parts = array_map(array(
-        'Aldu\Core\Utility\Inflector',
-        'underscore'
+        'Aldu\Core\Utility\Inflector', 'underscore'
       ), $parts);
       $class = array_pop($parts);
       array_pop($parts);

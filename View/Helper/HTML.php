@@ -78,7 +78,7 @@ class HTML extends DOM\Node
   {
     $classes = explode(' ', $this->class);
     $classes[] = $class;
-    $this->class = implode(' ', array_unique($classes));
+    $this->class = implode(' ', array_filter(array_unique($classes)));
     return $this;
   }
 

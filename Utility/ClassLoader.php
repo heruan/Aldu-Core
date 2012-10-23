@@ -224,7 +224,7 @@ class ClassLoader
      */
     public static function classExists($className)
     {
-        if (class_exists($className, false)) {// && in_array($className, get_declared_classes())) {
+        if (class_exists($className, false) && in_array($className, get_declared_classes())) {
             return true;
         }
 
@@ -288,7 +288,7 @@ class ClassLoader
         }
         return false;
     }
-    
+
     public static function nsExists($ns)
     {
         foreach (spl_autoload_functions() as $loader) {
@@ -315,7 +315,7 @@ class ClassLoader
 
         return false;
     }
-    
+
     protected function _nsExists($nsName)
     {
       $explode = explode($this->namespaceSeparator, $nsName);

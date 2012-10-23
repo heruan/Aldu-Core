@@ -261,8 +261,14 @@ class Request extends Net\HTTP
     $this->fullBase = $this->_base($this->resource, true);
     $this->path = $this->_path($this->resource, $this->base);
     $this->agent = $this->header('User-Agent');
-    $this->time = static::env('REQUEST_TIME') ? : time();
+    $this->time = microtime(true);//static::env('REQUEST_TIME') ? : time();
     $this->id = $this->_id();
+  }
+
+  public function time($round = 3)
+  {
+    $time = microtime(true) - $this->time;
+    return round($time, $round);
   }
 
   protected function _data($data = array(), $files = array())
@@ -380,7 +386,7 @@ class Request extends Net\HTTP
       $self->aro = $aro;
     }
   }
-  
+
   public function initialize()
   {
     $this->id = $this->_id();

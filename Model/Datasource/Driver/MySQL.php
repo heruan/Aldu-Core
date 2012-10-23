@@ -92,7 +92,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $query = vsprintf($query, $args);
     }
     if ($debug) {
-      echo $query . "\n";
+      var_dump($query);
     }
     $result = $this->link->query($query);
     if (is_bool($result)) {
@@ -111,27 +111,29 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 
   protected function describe($table)
   {
-    $describe = $this->query("DESCRIBE `%s`", $table);
     $keys = array(
       'primary' => array(), 'unique' => array(), 'indexes' => array()
     );
     $fields = array();
-    foreach ($describe as $field) {
-      $fields[$field['Field']] = array(
-        'type' => $field['Type'],
-        'null' => $field['Null'] === 'YES' ? true : false,
-        'default' => $field['Default'], 'extra' => $field['Extra']
-      );
-      switch ($field['Key']) {
-      case 'PRI':
-        $keys['primary'][] = $field['Field'];
-        break;
-      case 'UNI':
-        $keys['unique'][] = $field['Field'];
-        break;
-      case 'IND':
-        $keys['indexes'][] = $field['Field'];
-        break;
+    foreach ($this->tables("$table%") as $table) {
+    $describe = $this->query("DESCRIBE `%s`", $table);
+      foreach ($describe as $field) {
+        $fields[$field['Field']] = array(
+          'type' => $field['Type'],
+          'null' => $field['Null'] === 'YES' ? true : false,
+          'default' => $field['Default'], 'extra' => $field['Extra']
+        );
+        switch ($field['Key']) {
+        case 'PRI':
+          $keys['primary'][] = $field['Field'];
+          break;
+        case 'UNI':
+          $keys['unique'][] = $field['Field'];
+          break;
+        case 'IND':
+          $keys['indexes'][] = $field['Field'];
+          break;
+        }
       }
     }
     return array(
@@ -436,9 +438,13 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     }
   }
 
-  protected function normalizeRow($class, &$row)
+  protected function normalizeRow($table, &$row)
   {
-    foreach ($row as $field => &$value) {
+    foreach ($row as $column => &$value) {
+      $type = $this->type($table, $column);
+      if (preg_match('/^set/', $type)) {
+        $value = explode(',', $value);
+      }
     }
   }
 
@@ -663,8 +669,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $logic = 'OR';
       break;
     }
-    $where = implode(") $logic (", $where);
-    return $where ? "($where)" : '1';
+    $where = implode(" $logic ", $where);
+    return $where ? "$where" : '1';
   }
 
   protected function conditions($class, $search = array(), $logic = '$and',
@@ -679,7 +685,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         break;
       case '$and':
       case '$or':
-        $where[] = $this->search($class, $value, $attribute);
+        $where[] = "(" . $this->search($class, $value, $attribute) . ")";
         break;
       default:
         $and[] = array(
@@ -786,8 +792,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     if (!$select = $this->select($class, $search, $options)) {
       return $models;
     }
+    $tableName = $this->tableName($class);
     foreach ($select as &$row) {
-      $this->normalizeRow($class, $row);
+      $this->normalizeRow($tableName, $row);
       $this->normalizeAttributes($class, $row);
       $model = new $class($row);
       $this->normalizeModel($model);
@@ -893,8 +900,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   public function tag($model, $tags, $relation = array())
   {
     if (!$model->id) {
-      $model->save();
+      //$model->save();
     }
+    $this->save($model);
     foreach ($tags as $tag) {
       if (!$tag->id) {
         $tag->save();
@@ -905,7 +913,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       }
       $fields = array_merge(
         array(
-          'model' => $model, 'tag' => $tag
+          'model' => $model, 'tag' => $tag,
+          'created' => date(self::DATETIME_FORMAT)
         ), $relation);
       $this->denormalizeArray($fields);
       $columns = implode('`, `', array_keys($fields));
@@ -960,9 +969,11 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', true);
         }
-        if ($this
-          ->query("SELECT `model` FROM `%s` WHERE $where $options", $hasTable)) {
-          $models[] = $model;
+        if ($rel = $this
+          ->query("SELECT * FROM `%s` WHERE $where $options", $hasTable)) {
+          $models = array_shift($rel);
+          unset($models['model'], $models['tag']);
+          $this->normalizeRow($hasTable, $models);
         }
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', false);
@@ -973,13 +984,11 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $where = $this->conditions(null, $relation);
       foreach ($this->tables($this->hasTable($model, $tag)) as $hasTable) {
         $explode = explode('-', $hasTable);
-        $modelClass = $this
-          ->className($explode[1]);
+        $modelClass = $this->className($explode[1]);
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', true);
         }
-        $rows = $this
-          ->query("SELECT `model` FROM `%s` WHERE $where $options", $hasTable);
+        $rows = $this->query("SELECT `model` FROM `%s` WHERE $where $options", $hasTable);
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', false);
         }
@@ -1025,9 +1034,10 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', true);
         }
-        if ($this
-          ->query("SELECT `tag` FROM `%s` WHERE $where $options", $hasTable)) {
-          $tags[] = $tag;
+        if ($rel = $this
+          ->query("SELECT * FROM `%s` WHERE $where $options", $hasTable)) {
+          $tags = array_shift($rel);
+          unset($tags['model'], $tags['tag']);
         }
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', false);

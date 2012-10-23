@@ -31,6 +31,14 @@ class Driver extends Core\Stub implements DriverInterface
     $this->url = $url;
   }
 
+  protected function getClass($model)
+  {
+    if (is_object($model)) {
+      return get_class($model);
+    }
+    return $model;
+  }
+
   protected function isRegex($string)
   {
     return ($string && is_string($string) && preg_match('/[^a-z0-9\s]/i', $string[0])
@@ -53,9 +61,6 @@ class Driver extends Core\Stub implements DriverInterface
     }
     elseif ($value) {
       switch ($type = $class::cfg("attributes.$attribute.type")) {
-      case is_array($type):
-        $value = explode(',', $value);
-        break;
       case 'date':
       case 'time':
       case 'datetime':

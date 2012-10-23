@@ -72,32 +72,24 @@ class Datasource extends Core\Stub
     unset($this->driver);
   }
 
-  public function save(&$models = array())
+  public function save(&$model = null)
   {
-    if (!is_array($models)) {
-      $models = array(
-        $models
-      );
-    }
-    foreach ($models as &$model) {
-      $class = get_class($model);
-      $cache = implode('::', array(
-        $class
-      ));
-      $this->cache->delete($cache);
-      foreach ($class::cfg('attributes') as $attribute => $type) {
-        if (is_null($model->$attribute) && isset($type['null'])
-          && !$type['null'] && isset($type['default'])) {
-          $model->$attribute = $type['default'];
-        }
+    $class = get_class($model);
+    $cache = implode('::', array(
+      $class
+    ));
+    $this->cache->delete($cache);
+    foreach ($class::cfg('attributes') as $attribute => $type) {
+      if (is_null($model->$attribute) && isset($type['null'])
+        && !$type['null'] && isset($type['default'])) {
+        $model->$attribute = $type['default'];
       }
-      $this->driver->save($model);
     }
+    return $this->driver->save($model);
   }
 
   public function count($class, $search = array(), $options = array())
   {
-    //$search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -120,7 +112,6 @@ class Datasource extends Core\Stub
 
   public function first($class, $search = array(), $options = array())
   {
-    //$search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -134,7 +125,6 @@ class Datasource extends Core\Stub
 
   public function read($class, $search = array(), $options = array())
   {
-    //$search = $this->driver->normalizeSearch($search);
     $cache = implode('::',
       array(
         $class, __METHOD__, md5(serialize(array($search, $options)))
@@ -161,7 +151,6 @@ class Datasource extends Core\Stub
 
   public function purge($class, $search = array(), $options = array())
   {
-    //$search = $this->driver->normalizeSearch($search);
     $cache = implode('::', array(
       $class
     ));
@@ -216,7 +205,7 @@ class Datasource extends Core\Stub
     return $result;
   }
 
-  public function belongs($tag, $model, $relation = array(),
+  public function belongs($tag, $model = null, $relation = array(),
     $search = array(), $options = array())
   {
     $class = is_object($model) ? get_class($model) : $model;

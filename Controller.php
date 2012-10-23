@@ -98,11 +98,7 @@ class Controller extends Event\Listener
   public function edit($id)
   {
     if ($this->request->is('post')) {
-      $modelClass = get_class($this->model);
-      foreach ($this->request->data($modelClass) as $index => $attributes) {
-        $model = new $modelClass($attributes);
-        $model->save();
-      }
+      $this->post(__FUNCTION__, $this->request->data());
     }
     if ($model = $this->model->first(array(
         'id' => $id
@@ -113,6 +109,9 @@ class Controller extends Event\Listener
 
   public function add()
   {
+    if (!$this->model->authorized($this->request->aro, __FUNCTION__)) {
+      return $this->response->status(401);
+    }
     if ($this->request->is('post')) {
       $this->post(__FUNCTION__, $this->request->data());
     }
@@ -125,40 +124,66 @@ class Controller extends Event\Listener
       if (!ClassLoader::classExists($class)) {
         continue;
       }
-      $model = new $class();
-      $tags = array(
-        '+has' => array(), '-has' => array(),
-        '+belongs' => array(), '-belongs' => array()
-      );
       while (list($index, $attributes) = each($array)) {
+        if (!isset($attributes['id']) || !($model = $class::instance($attributes['id']))) {
+          $model = new $class();
+        }
+        if (!$model->authorized($this->request->aro, $action)) {
+          continue;
+        }
+        $tags = array(
+          '-has' => array(), '+has' => array(),
+          '-belongs' => array(), '+belongs' => array()
+        );
         foreach ($attributes as $attribute => $value) {
           if (ClassLoader::classExists($attribute)) {
-            // TODO relationships
+            $rel_model = $attribute;
+            foreach ($value as $rel_type => $relations) {
+              foreach ($relations as $relation => $tag_id) {
+                if ($relation === 'relations') {
+                  continue;
+                }
+                if ($tag_id == 0) {
+                  $tag_id = $relation;
+                  $relation = '-';
+                }
+                if ($tag = $rel_model::first($tag_id)) {
+                  if ($relation === '-') {
+                    $tags["-$rel_type"][$tag_id] = array(
+                      'tag' => $tag
+                    );
+                  }
+                  else {
+                    $tags["+$rel_type"][$tag_id] = array(
+                      'tag' => $tag,
+                      'relation' => isset($relations['relations'], $relations['relations'][$tag_id]) ? $relations['relations'][$tag_id] : array()
+                    );
+                  }
+                }
+              }
+            }
           }
           elseif ($model->authorized($this->request->aro, $action, $attribute)) {
             $type = $class::cfg("attributes.$attribute.type");
-            switch ($type) {
-            case is_subclass_of($type, 'Aldu\Core\Model'):
+            if (is_subclass_of($type, 'Aldu\Core\Model')) {
               if ($$type = $type::first($value)) {
                 $value = $$type;
               }
-              break;
-            case 'datetime':
+            }
+            elseif ($type === 'datetime') {
               $value = DateTime::createFromFormat(ALDU_DATETIME_FORMAT, $value);
-              break;
             }
             $model->$attribute = $value;
           }
         }
-        if ($model->authorized($this->request->aro, $action)) {// && $model->save()) {
-          var_dump($model);
+        if ($model->save()) {
           $this->response
             ->message(
               $this->view->locale
                 ->t('%s %s successfully %s.', $model->name(), $model->id,
                   Inflector::pastParticiple($action)));
-          foreach ($tags as $type => $array) {
-            foreach ($array as $tag) {
+          foreach ($tags as $type => $tagArray) {
+            foreach ($tagArray as $tag) {
               extract($tag);
               switch ($type) {
               case '-has':
