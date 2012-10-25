@@ -205,7 +205,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     extract(
       array_merge(
         array(
-          'type' => null, 'other' => null, 'null' => true, 'default' => null
+          'type' => null, 'other' => null, 'null' => true, 'default' => null,
+          'increment' => null
         ), $options));
     if (is_array($default)) {
       $default = implode(",",
@@ -223,9 +224,16 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
           array_map('var_export', $type, array_fill(0, count($type), true)))
         . ") $null $default,\n\t";
     }
+    switch ($increment) {
+      case 'auto':
+        $increment = 'AUTO_INCREMENT';
+        break;
+      default:
+        $increment = '';
+    }
     switch ($type) {
     case 'int':
-      return "`$column` INT $other $null $default,\n\t";
+      return "`$column` INT $other $null $default $increment,\n\t";
     case 'float':
       return "`$column` FLOAT $other $null $default,\n\t";
     case 'text':
@@ -270,7 +278,6 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       // TODO array_diff multiple attributes
       $queries = array();
       $query = "CREATE TABLE IF NOT EXISTS `$table` (\n\t";
-      $query .= "`id` INT unsigned NOT NULL AUTO_INCREMENT,\n\t";
       $extensions = $keys = $fkeys = array();
       foreach ($class::cfg('extensions') as $extName => $ext) {
         $extensions[$extName]['ref'] = $this->tableName($ext['ref']);
@@ -281,9 +288,6 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         }
       }
       foreach (array_keys($columns) as $column) {
-        if ($column === 'id') {
-          continue;
-        }
         if (($type = $class::cfg("attributes.$column.type"))
           && is_subclass_of($type, 'Aldu\Core\Model')) {
           $refTable = ($class === $type) ? $table : $this->tableName($type);
