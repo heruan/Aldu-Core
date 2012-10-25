@@ -30,7 +30,7 @@ class Table extends Helper\HTML
   
   public function __construct($headers = array(), $document = null)
   {
-    parent::__construct('table', $document);
+    parent::__construct('table.aldu-core-view-helper-html-table', $document);
     $this->colgroup = $this->append('colgroup');
     $this->head = $this->append('thead');
     $this->body = $this->append('tbody');

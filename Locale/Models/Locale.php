@@ -28,7 +28,7 @@ class Locale extends Core\Locale\Localized
   protected static $extensions = array(
     'localized' => array(
       'attributes' => array(
-        'title'
+        'title' => true
       )
     )
   );

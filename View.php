@@ -89,7 +89,7 @@ class View extends Stub
       ));
     }
     if ($first) {
-      $select->node('select')->prepend('option');//, $this->locale->t('Select %s', $model->name()));
+      $select->node('select')->prepend('option')->text($this->locale->t('Select %s', $model->name()));
     }
     return $select;
   }
@@ -228,7 +228,7 @@ class View extends Stub
       $classes = explode('.', $name);
       $name = array_shift($classes);
       $headers[$name] = array(
-        'title' => _($title),
+        'title' => $this->locale->t($title),
         'attributes' => array(
           'class' => implode(' ', array_merge(array(
             'sortable',
@@ -332,14 +332,24 @@ class View extends Stub
     if (($route = $router->current) && $route->controller) {
       foreach (static::cfg('shortcuts.static') as $action => $title) {
         if ($route->controller->model->authorized($router->request->aro, $action)) {
-          $ul->li()->a($locale->t($title, $route->controller->model->name()))->href = $route->controller->model->url($action);
+          $href = $route->controller->model->url($action);
+          $li = $ul->li();
+          $li->a($locale->t($title, $route->controller->model->name()))->href = $href;
+          if ($href === $router->basePath) {
+            $li->addClass('active');
+          }
         }
       }
       if ($route->controller->view->model->id) {
         $model = $route->controller->view->model;
         foreach (static::cfg('shortcuts.model') as $action => $title) {
           if ($model->authorized($router->request->aro, $action)) {
-            $ul->li()->a($locale->t($title, $model->name(), $model->id))->href = $model->url($action);
+            $href = $model->url($action);
+            $li = $ul->li();
+            $li->a($locale->t($title, $model->name(), $model->id))->href = $href;
+            if ($href === $router->basePath) {
+              $li->addClass('active');
+            }
           }
         }
       }

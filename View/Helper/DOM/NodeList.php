@@ -34,6 +34,14 @@ class NodeList extends Helper\DOM implements Iterator
     $this->position = 0;
   }
 
+  public function __set($name, $value)
+  {
+    foreach ($this->nodes as $node) {
+      if (is_null($value)) $node->removeAttribute($name);
+      else $node->setAttribute($name, $value);
+    }
+  }
+  
   public function __get($name)
   {
     switch ($name) {

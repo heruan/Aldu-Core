@@ -116,7 +116,8 @@ abstract class Stub
     }
     if ($config) {
       self::$_configurations[$self] = array_replace_recursive(
-        self::$_configurations[$self], $config);
+        self::$_configurations[$self], $config
+      );
     }
     return self::$_configurations[$self];
   }

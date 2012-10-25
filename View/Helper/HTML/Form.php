@@ -383,6 +383,7 @@ class Form extends Helper\HTML
       $div->append($label, $thumb, $element);
       break;
     case 'hidden':
+      $div->remove();
     case 'text':
     case 'password':
     default:
@@ -392,7 +393,13 @@ class Form extends Helper\HTML
         'type' => $type, 'value' => $value !== false ? $value : null
       )));
       if ($description) $element->placeholder = $description;
-      $div->append($label, $element);
+      if ($type === 'hidden') {
+        $div = $element;
+        $this->append($div);
+      }
+      else {
+        $div->append($label, $element);
+      }
     }
     if ($required) {
       $element->required = 'required';

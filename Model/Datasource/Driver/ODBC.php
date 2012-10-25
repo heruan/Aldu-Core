@@ -468,7 +468,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
     $normalize = array();
     foreach ($row as $field => $value) {
       $field = array_search($field, $class::cfg("datasource.odbc.mappings")) ? 
-        : $field;
+        : strtolower($field);
       $value = trim($value);
       $normalize[$field] = $value ? : null;
     }

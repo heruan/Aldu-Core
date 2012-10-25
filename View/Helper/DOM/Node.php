@@ -169,6 +169,7 @@ class Node extends Helper\DOM implements Iterator, Countable
     else {
       $this->node->parentNode->removeChild($this->node);
     }
+    return $this;
   }
 
   public function purge()
@@ -291,6 +292,12 @@ class Node extends Helper\DOM implements Iterator, Countable
       }
     }
     return array_shift($nodes);
+  }
+  
+  public function appendTo($node)
+  {
+    $node->append($this);
+    return $this;
   }
 
   public function import($document)

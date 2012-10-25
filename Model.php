@@ -100,7 +100,12 @@ class Model extends Stub
   protected static function configure($configuration = array())
   {
     $class = get_called_class();
-    $configuration['attributes'] = $class::$attributes;
+    $configuration['attributes'] = array_map(function($attribute)use($class) {
+      if (isset($attribute['type']) && $attribute['type'] === 'self') {
+        $attribute['type'] = $class;
+      }
+      return $attribute;
+    }, $class::$attributes);
     $configuration['extensions'] = $class::$extensions;
     $configuration['relations'] = $class::$relations;
     $configuration = parent::configure($configuration);
@@ -121,8 +126,8 @@ class Model extends Stub
     if (!$id) {
       return null;
     }
+    static::configure();
     $class = get_called_class();
-    $class::configure();
     if (!isset(self::$instances[$class][$id])) {
       self::$instances[$class][$id] = $class::first(array(
         'id' => $id
@@ -133,8 +138,8 @@ class Model extends Stub
 
   public static function datasource($function = 'default')
   {
+    static::configure();
     $class = get_called_class();
-    $class::configure();
     if (isset(self::$datasources[$class][$function])) {
       return self::$datasources[$class][$function];
     }
@@ -286,6 +291,24 @@ class Model extends Stub
     return static::datasource(__FUNCTION__)->authenticate($class, $username, $password);
   }
 
+  public function is($model, $search = array())
+  {
+    if (is_object($model)) {
+      return $this == $model;
+    }
+    if (empty($search)) {
+      return is_a($this, $model);
+    }
+    if (is_a($this, $model)) {
+      foreach ($model::read($search) as $is) {
+        if ($this == $is) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
   protected function _authorized($aro, $action = 'read', $attribute = null)
   {
     if (!$aro || ($this->acl && in_array($action, $this->acl))) {
@@ -299,8 +322,8 @@ class Model extends Stub
     }
     foreach (static::cfg('acls') as $acl) {
       extract(array_merge(array('search' => array(), 'options' => array(), 'actions' => array()), $acl), EXTR_PREFIX_ALL, 'acl');
-      if (is_a($aro, $acl_model)) {
-        return in_array($action, $acl_actions);
+      if ($aro->is($acl_model, $acl_search) && in_array($action, $acl_actions)) {
+        return true;
       }
       foreach ($acl_model::read($acl_search, $acl_options) as $owner) {
         if ($owner->has($aro) && in_array($action, $acl_actions)) {

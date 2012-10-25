@@ -202,7 +202,7 @@ class Page extends Helper\HTML
       }
     }
     if ($ui = static::cfg('ui.engine')) {
-      $this->ui->style($this);
+      $this->ui->style($this, $ui);
     }
     return $this;
   }

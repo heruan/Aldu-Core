@@ -288,7 +288,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
           && is_subclass_of($type, 'Aldu\Core\Model')) {
           $refTable = ($class === $type) ? $table : $this->tableName($type);
           if ($table !== $refTable && !$this->tableExists($refTable)) {
-            $this->tablesFor($refClass);
+            $this->tablesFor($type);
           }
           $keys[] = "KEY `$column` (`$column`)";
           $fkeys[] = "FOREIGN KEY (`$column`) REFERENCES `$refTable` (`id`) ON DELETE CASCADE ON UPDATE CASCADE";
