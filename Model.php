@@ -73,7 +73,7 @@ class Model extends Stub
   );
   protected static $attributes = array(
     'id' => array(
-      'type' => 'int', 'null' => false, 'other' => 'unsigned'
+      'type' => 'int', 'null' => false, 'other' => 'unsigned', 'increment' => 'auto'
     ), 'acl' => array(
       'type' => array(
         'read', 'edit', 'delete'
