@@ -18,6 +18,7 @@
  */
 
 namespace Aldu\Core\Model\Datasource\Driver;
+
 use Aldu\Core\Model\Datasource\DriverInterface;
 use Aldu\Core\Model\Datasource;
 use Aldu\Core;
@@ -32,8 +33,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
     __CLASS__ => array(
       'debug' => array(
         'all' => false
-      ),
-      'openldap' => array(
+      ), 'openldap' => array(
         'authentication' => array(
           'dn' => true
         )
@@ -46,8 +46,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
               'ldap' => array(
                 'openldap' => array(
                   'mappings' => array(
-                    'created' => 'createTimestamp',
-                    'updated' => 'modifyTimestamp'
+                    'created' => 'createTimestamp', 'updated' => 'modifyTimestamp'
                   )
                 ),
                 'ad' => array(
@@ -67,10 +66,9 @@ class LDAP extends Datasource\Driver implements DriverInterface
   public function __construct($url, $parts)
   {
     parent::__construct($url);
-    $conn = array_merge(
-      array(
-        'host' => 'localhost', 'port' => self::DEFAULT_PORT
-      ), $parts);
+    $conn = array_merge(array(
+      'host' => 'localhost', 'port' => self::DEFAULT_PORT
+    ), $parts);
     if (!$this->link = ldap_connect($conn['host'], $conn['port'])) {
     }
     ldap_set_option($this->link, LDAP_OPT_PROTOCOL_VERSION, 3);
@@ -92,24 +90,44 @@ class LDAP extends Datasource\Driver implements DriverInterface
   {
     $dn = array();
     $class = is_object($model) ? get_class($model) : $model;
-    $rdn = $class::cfg(
-      'datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.rdn') ?
-      : 'name';
-    $attribute = array_search($rdn,
-      $class::cfg(
-        'datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.mappings')) ?
-      : $rdn;
+    $rdn = $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.rdn') ? : 'name';
+    $attribute = array_search($rdn, $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.mappings')) ? : $rdn;
     $dn[] = $value ? "$rdn=$value" : "$rdn={$model->$attribute}";
-    if ($base = $class::cfg(
-      'datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.base')) {
+    if ($base = $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.base')) {
       $dn[] = $base;
     }
     $dn[] = $this->base;
     return implode(',', $dn);
   }
 
-  protected function _conditions($class, $search = array(), $logic = '$and',
-    $op = '=')
+  protected function littleEndian($hex)
+  {
+    $result = '';
+
+    for ($x = strlen($hex) - 2; $x >= 0; $x = $x - 2)
+      $result .= substr($hex, $x, 2);
+
+    return $result;
+  }
+
+  protected function binSIDtoText($binsid, $pop = true)
+  {
+    $hex_sid = bin2hex($binsid);
+    $rev = hexdec(substr($hex_sid, 0, 2)); // Get revision-part of SID
+    $subcount = hexdec(substr($hex_sid, 2, 2)); // Get count of sub-auth entries
+    $auth = hexdec(substr($hex_sid, 4, 12)); // SECURITY_NT_AUTHORITY
+
+    $result = "$rev-$auth";
+
+    for ($x = 0; $x < $subcount; $x++) {
+      $subauth[$x] = hexdec($this->littleEndian(substr($hex_sid, 16 + ($x * 8), 8))); // get all SECURITY_NT_AUTHORITY
+      $result .= sprintf('-%s', $subauth[$x]);
+    }
+    $parts = explode('-', $result);
+    return $pop ? array_pop($parts) : $result;
+  }
+
+  protected function _conditions($class, $search = array(), $logic = '$and', $op = '=')
   {
     $where = array();
     foreach ($search as $conditions) {
@@ -278,11 +296,12 @@ class LDAP extends Datasource\Driver implements DriverInterface
             $v = array_shift($condition);
           }
           if (is_string($attribute)) {
+            $type = $class::cfg('datasource.ldap.type');
             $k = array_search($attribute,
-              array_flip(
-                $class::cfg(
-                  'datasource.ldap.' . $class::cfg('datasource.ldap.type')
-                    . '.mappings'))) ? : $attribute;
+              array_flip($class::cfg("datasource.ldap.$type.mappings"))) ? : $attribute;
+            if ($type === 'ad' && $k === 'objectSid') {
+              $v = $class::cfg("datasource.ldap.$type.sid") . $v;
+            }
           }
           if ($v instanceof Core\Model) {
             if (!$v->id) {
@@ -325,8 +344,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
     return $where ? $where : self::FILTER_ALL;
   }
 
-  protected function conditions($class, $search = array(), $logic = '$and',
-    $op = '=')
+  protected function conditions($class, $search = array(), $logic = '$and', $op = '=')
   {
     $and = array();
     $where = array();
@@ -378,19 +396,19 @@ class LDAP extends Datasource\Driver implements DriverInterface
         }
         if (is_array($value)) {
           unset($value['count']);
-          $key = $key;
+          if ($key === 'objectSid') {
+            $value[0] = $this->binSIDtoText($value[0]);
+          }
           $type = $class::cfg('datasource.ldap.type');
-          $key = array_search($key,
-            $class::cfg("datasource.ldap.$type.mappings")) ? : $key;
+          $key = array_search($key, $class::cfg("datasource.ldap.$type.mappings")) ? : $key;
           if ($ref = $class::cfg("datasource.ldap.$type.references.$key")) {
             array_walk($value,
               function (&$item, $key, $ref)
               {
                 $refClass = $ref['class'];
-                $item = $refClass::first(
-                  array(
-                    $ref['attribute'] => $item
-                  ));
+                $item = $refClass::first(array(
+                  $ref['attribute'] => $item
+                ));
               }, $ref);
           }
           $this->normalizeAttribute($class, $key, $value);
@@ -428,23 +446,19 @@ class LDAP extends Datasource\Driver implements DriverInterface
     }
     else {
       $type = $class::cfg('datasource.ldap.type');
-      $base = implode(',',
-        array(
-          $class::cfg("datasource.ldap.$type.base"), $this->base
-        ));
+      $base = implode(',', array(
+        $class::cfg("datasource.ldap.$type.base"), $this->base
+      ));
       if (!isset($search['objectClass'])) {
-        $search['objectClass'] = $class::cfg(
-          "datasource.ldap.$type.objectClass");
+        $search['objectClass'] = $class::cfg("datasource.ldap.$type.objectClass");
       }
-      $search = array_replace_recursive($search,
-        $class::cfg("datasource.ldap.$type.filter"));
+      $search = array_replace_recursive($search, $class::cfg("datasource.ldap.$type.filter"));
       $filter = $this->conditions($class, $search);
     }
     $attributes = array_map(
       function ($attribute) use ($class, $type)
       {
-        return $class::cfg("datasource.ldap.$type.mappings.$attribute") ?
-          : $attribute;
+        return $class::cfg("datasource.ldap.$type.mappings.$attribute") ? : $attribute;
       }, array_keys(get_public_vars($class)));
     if (static::cfg('debug.all')) {
       var_dump($filter);
@@ -547,8 +561,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
           ;
         }
         else {
-          $attribute = $class::cfg("datasource.ldap.$type.mappings.$attribute") ?
-            : $attribute;
+          $attribute = $class::cfg("datasource.ldap.$type.mappings.$attribute") ? : $attribute;
           $attributes[$attribute] = $value;
         }
       }
@@ -565,8 +578,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
     }
   }
 
-  public function has($model, $tag = null, $relation = array(),
-    $search = array(), $options = array())
+  public function has($model, $tag = null, $relation = array(), $search = array(), $options = array())
   {
     $has = array();
     $modelClass = $this->getClass($model);
@@ -575,19 +587,22 @@ class LDAP extends Datasource\Driver implements DriverInterface
         return in_array($tag, $model->members);
       }
       foreach ($model->members as $member) {
-        $has += $this->read($tagClass, array('uid' => $member->name));
+        $has += $this->read($tagClass, array(
+            'uid' => $member->name
+          ));
       }
     }
     return $has;
   }
 
-  public function belongs($tag, $model, $relation = array(), $search = array(),
-    $options = array())
+  public function belongs($tag, $model, $relation = array(), $search = array(), $options = array())
   {
     $belongs = array();
     $tagClass = $this->getClass($tag);
     $modelClass = $this->getClass($model);
-    $belongs += $this->read('Aldu\Auth\Models\Group', array('memberUid' => $tag->name));
+    $belongs += $this->read('Aldu\Auth\Models\Group', array(
+        'memberUid' => $tag->name
+      ));
     return $belongs;
   }
 

@@ -74,7 +74,7 @@ class View extends Stub
   public function select($form, $name, $_ = array())
   {
     $_ = array_merge(array(
-      'first' => true,
+      'placeholder' => true,
       'title' => '',
       'description' => '',
       'required' => false,
@@ -100,8 +100,15 @@ class View extends Stub
         'href' => $model->url('add')
       ));
     }
-    if ($first) {
-      $select->node('select')->prepend('option')->text($this->locale->t('Select %s', $model->name()));
+    if (!$required) {
+      $select->node('select')
+        ->prepend('option')
+        ->text($this->locale->t('None'));
+    }
+    if ($placeholder) {
+      $select->node('select')
+        ->prepend('option', array('selected' => true, 'disabled' => true))
+        ->text($this->locale->t('Select %s', $model->name()));
     }
     return $select;
   }

@@ -150,7 +150,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
   protected function type($table, $column)
   {
     $describe = $this->describe($table);
-    return $describe['fields'][$column]['type'];
+    return $describe['fields'][strtoupper($column)]['type'];
   }
   
   protected function tableName($class)
