@@ -18,6 +18,8 @@
  */
 
 namespace Aldu\Core\View\Helper\HTML;
+use Aldu\Core\Utility\Inflector;
+
 use Aldu\Core\View\Helper;
 use Aldu\Core;
 use DateTime;
@@ -49,7 +51,8 @@ class Form extends Helper\HTML
       array_merge(
         array(
           'id' => null, 'index' => 0, 'method' => 'post', 'context' => null,
-          'defaults' => array(), 'redirect' => null, 'references' => array()
+          'defaults' => array(), 'redirect' => null, 'references' => array(),
+          'attributes' => array()
         ), $_));
     $this->indexes = $references;
     $this->defaults = $defaults;
@@ -59,12 +62,12 @@ class Form extends Helper\HTML
     parent::__construct('div', $document);
     $this->class = 'aldu-core-view-helper-html-form';
     $this->id = $id ? : 'form' . uniqid(); //md5($this->model . $this->action);
-    $this->form = $this->append('form', array(
+    $this->form = $this->append('form', array_merge($attributes, array(
       'id' => $this->id, 'name' => $this->action,
       'data-model' => $this->model ? get_class($this->model) : null,
       'data-id' => $this->model ? $this->model->id : null,
       'action' => $this->context->url($this->action), 'method' => $method
-    ));
+    )));
     if ($redirect) {
       $this->append('input', array(
         'form' => $this->id, 'type' => 'hidden', 'name' => 'redirect',
@@ -161,7 +164,7 @@ class Form extends Helper\HTML
       $referenceIndex = isset($this->indexes[$referenceClass]) ? $this->indexes[$referenceClass] : 0;
       $value = $referenceClass . ':' . $referenceIndex;
     }
-    $id = uniqid($name);
+    $id = uniqid(Inflector::slug($name));
     $_name = $modelClass . '[' . $this->indexes[$modelClass] . '][' . $name . ']';
     $div = $this->create('div', array(
       'title' => $description, 'data-name' => $name,

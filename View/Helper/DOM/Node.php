@@ -293,7 +293,7 @@ class Node extends Helper\DOM implements Iterator, Countable
     }
     return array_shift($nodes);
   }
-  
+
   public function appendTo($node)
   {
     $node->append($this);
@@ -303,7 +303,17 @@ class Node extends Helper\DOM implements Iterator, Countable
   public function import($document)
   {
     $this->document = $document;
-    $this->node = $this->document->import($this->node);
+    if ($this->node instanceof NodeList) {
+      $nodes = array();
+      foreach ($this->node as $n) {
+        $nodes[] = $this->document->import($n);
+      }
+      $this->node = new NodeList($nodes);
+    }
+    else {
+      $this->node = $this->document->import($this->node);
+    }
+    return $this;
   }
 
   public function first()

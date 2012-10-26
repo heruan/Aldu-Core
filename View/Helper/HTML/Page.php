@@ -28,8 +28,8 @@ class Page extends Helper\HTML
       'separator' => ' - '
     ),
     'themes' => array(
-      'base' => 'public/themes',
       'default' => array(
+        'base' => 'public/themes',
         'name' => 'default', 'html' => 'index.html'
       )
     )
@@ -46,7 +46,7 @@ class Page extends Helper\HTML
   protected $request;
   protected $response;
 
-  public function __construct($document = null, $lang = 'en-us', $theme = null)
+  public function __construct($document = null, $lang = 'en-us')
   {
     parent::__construct('html', $document);
     $this->node = $this->document->root->node;
@@ -59,16 +59,29 @@ class Page extends Helper\HTML
         ));
     $this->title = $this->head->append('title');
     $this->body = $this->append('body');
-    $this->ui = new UI($this);
-    $this->theme = $theme ? : static::cfg('themes.default');
     $this->router = Core\Router::instance();
     $this->request = Core\Net\HTTP\Request::instance();
     $this->response = Core\Net\HTTP\Response::instance();
+    $this->theme = static::cfg('themes.default');
+    foreach (static::cfg('themes') as $name => $theme) {
+      extract(array_merge(array(
+      ), $theme), EXTR_PREFIX_ALL, 'theme');
+      if (isset($theme_for) && $this->request->is($theme_for)) {
+        $this->theme = array_merge(array(
+          'base' => 'public/themes'), $theme);
+      }
+    }
+    $this->ui = new UI($this, $this->theme);
   }
 
   public function theme($theme = null)
   {
-    $theme = $theme ? : $this->theme;
+    if ($theme) {
+      $this->ui = new UI($this, $theme);
+    }
+    else {
+      $theme = $this->theme;
+    }
     if (is_array($theme) && isset($theme['html'])) {
       $html = ALDU_THEMES . DS . $theme['name'] . DS . $theme['html'];
     }
@@ -131,7 +144,7 @@ class Page extends Helper\HTML
     $base = $base ?
       : implode('/',
         array(
-          static::cfg('themes.base'), $this->theme['name'], null
+          $this->theme['base'], $this->theme['name'], null
         ));
     $node->href = $this->router->fullBase . $base;
   }
@@ -156,7 +169,7 @@ class Page extends Helper\HTML
       $context = $this->body;
     }
     foreach ($context->node('.aldu-core-view-helper-html-page-block') as $node) {
-      if ($position = $node->data('position')) {
+      foreach (explode(' ', $node->data('position')) as $position) {
         $this->router->openContext($position);
         foreach (Models\Block::read(array(
             'position' => $position
@@ -201,9 +214,7 @@ class Page extends Helper\HTML
         }
       }
     }
-    if ($ui = static::cfg('ui.engine')) {
-      $this->ui->style($this, $ui);
-    }
+    $this->ui->style($this);
     return $this;
   }
 

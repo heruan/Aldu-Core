@@ -24,6 +24,8 @@ class Cache extends Stub
 {
   protected static $configuration = array(__CLASS__ => array(
     'enabled' => false,
+    'fetch' => true,
+    'store' => true,
     'engine' => 'APC'
   ));
   public $enabled;
@@ -49,7 +51,7 @@ class Cache extends Stub
 
   public function fetch($key)
   {
-    if (!$this->enabled) return ALDU_CACHE_FAILURE;
+    if (!$this->enabled || !static::cfg('fetch')) return ALDU_CACHE_FAILURE;
     $fetch = $this->engine->fetch($this->prefix . $key);
     if ($fetch !== ALDU_CACHE_FAILURE) {
       $this->fetched++;
@@ -59,7 +61,7 @@ class Cache extends Stub
 
   public function store($key, $var, $ttl = ALDU_CACHE_TTL)
   {
-    if (!$this->enabled) return ALDU_CACHE_FAILURE;
+    if (!$this->enabled || !static::cfg('store')) return ALDU_CACHE_FAILURE;
     $this->stored++;
     return $this->engine->store($this->prefix . $key, $var, $ttl);
   }

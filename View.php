@@ -38,13 +38,25 @@ class View extends Stub
   protected static $configuration = array(__CLASS__ => array(
     'shortcuts' => array(
       'static' => array(
-        'browse' => "Browse {%s:pluralize}",
-        'add' => "Create %s"
+        'browse' => array(
+          'title' => "Browse {%s:pluralize}",
+          'attributes' => array(
+            'data-icon' => 'grid'
+           )
+        ),
+        'add' => array(
+          'title' => "Create %s",
+          'attributes' => array(
+            'data-icon' => 'plus'
+          )
+        )
       ),
       'model' => array(
-        'read' => "Read %s %s",
-        'edit' => "Edit %s %s",
-        'delete' => "Delete %s %s"
+        //'read' => array('title' => "Read %s %s"),
+        'edit' => array(
+          'title' => "Edit %s %s"
+        ),
+        'delete' => array('title' => "Delete %s %s")
       )
     )
   ));
@@ -154,7 +166,10 @@ class View extends Stub
         if (ClassLoader::classExists($rel_model)) {
           if ($rel_fieldset) {
             $form->fieldset($rel_model, array(
-              'title' => $rel_title
+              'title' => $rel_title,
+              'attributes' => array(
+                'data-role' => 'collapsible'
+              )
             ));
           }
           if ($rel_type === 'select') {
@@ -266,6 +281,16 @@ class View extends Stub
     return $table;
   }
 
+  public function listview($models = array())
+  {
+    $ul = new Helper\HTML('ul.aldu-core-view-listview');
+    foreach ($models as $model) {
+      $li = $ul->li();
+      $li->a($model->id);
+    }
+    return $ul;
+  }
+
   public function browse($models = array())
   {
     $render = $this->request->query('render') ?: $this->render;
@@ -281,8 +306,8 @@ class View extends Stub
     default:
       $page = new Helper\HTML\Page();
       $page->theme();
-      $page->title(__METHOD__);
-      $table = $this->table($models);
+      $page->title($this->locale->t('Browse %s', Inflector::pluralize($this->model->name())));
+      $table = $this->listview($models);
       return $this->response->body($page->compose($table));
     }
   }
@@ -330,11 +355,15 @@ class View extends Stub
     $router = Router::instance();
     $locale = Locale::instance();
     if (($route = $router->current) && $route->controller) {
-      foreach (static::cfg('shortcuts.static') as $action => $title) {
+      foreach (static::cfg('shortcuts.static') as $action => $options) {
+        extract(array_merge(array(
+          'title' => null,
+          'attributes' => array()
+        ), $options));
         if ($route->controller->model->authorized($router->request->aro, $action)) {
           $href = $route->controller->model->url($action);
           $li = $ul->li();
-          $li->a($locale->t($title, $route->controller->model->name()))->href = $href;
+          $li->a($locale->t($title, $route->controller->model->name()), $attributes)->href = $href;
           if ($href === $router->basePath) {
             $li->addClass('active');
           }
@@ -342,11 +371,15 @@ class View extends Stub
       }
       if ($route->controller->view->model->id) {
         $model = $route->controller->view->model;
-        foreach (static::cfg('shortcuts.model') as $action => $title) {
+        foreach (static::cfg('shortcuts.model') as $action => $options) {
+          extract(array_merge(array(
+          'title' => null,
+          'attributes' => array()
+          ), $options));
           if ($model->authorized($router->request->aro, $action)) {
             $href = $model->url($action);
             $li = $ul->li();
-            $li->a($locale->t($title, $model->name(), $model->id))->href = $href;
+            $li->a($locale->t($title, $model->name(), $model->id), $attributes)->href = $href;
             if ($href === $router->basePath) {
               $li->addClass('active');
             }

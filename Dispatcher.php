@@ -68,7 +68,9 @@ class Dispatcher extends Event\Listener
           break;
         }
       }
-      $this->cache->store($this->request->id, $this->response);
+      if ($this->request->is('get') && !$this->request->aro) {
+        $this->cache->store($this->request->id, $this->response);
+      }
       $this->response->header('X-Aldu-Cached', 'no');
       $this->trigger('afterRouting');
       switch ($status = $this->response->status()) {

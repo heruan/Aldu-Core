@@ -308,11 +308,14 @@ class Model extends Stub
     }
     return false;
   }
-  
+
   protected function _authorized($aro, $action = 'read', $attribute = null)
   {
-    if (!$aro || ($this->acl && in_array($action, $this->acl))) {
+    if ($this->acl && in_array($action, $this->acl)) {
       return true;
+    }
+    if (!$aro) {
+      return false;
     }
     $belongs = array_merge(array($aro), $aro->belongs());
     foreach ($belongs as $belongsAro) {
@@ -353,7 +356,7 @@ class Model extends Stub
     return $authorized;
   }
 
-  public function url($action = 'view', $_ = array())
+  public function url($action = 'read', $_ = array())
   {
     if (is_array($action)) {
       $_ = $action;
