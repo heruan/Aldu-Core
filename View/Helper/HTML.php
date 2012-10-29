@@ -40,7 +40,8 @@ class HTML extends DOM\Node
   protected function cast($function, $args)
   {
     $callback = array(
-      get_parent_class(__CLASS__), $function
+      get_parent_class(__CLASS__),
+      $function
     );
     if (is_callable($callback)) {
       $node = call_user_func_array($callback, $args);
@@ -76,9 +77,17 @@ class HTML extends DOM\Node
 
   public function addClass($class)
   {
-    $classes = preg_split('/\s+/', $this->class);
-    $classes[] = $class;
-    $this->class = implode(' ', array_filter(array_unique($classes)));
+    if ($this->node instanceof DOM\NodeList) {
+      foreach ($this->node as $node) {
+        $node = new self($node, $this->document);
+        $node->addClass($class);
+      }
+    }
+    else {
+      $classes = preg_split('/\s+/', $this->class);
+      $classes[] = $class;
+      $this->class = implode(' ', array_filter(array_unique($classes)));
+    }
     return $this;
   }
 

@@ -23,17 +23,20 @@ use Aldu\Core;
 
 class Page extends Helper\HTML
 {
-  protected static $configuration = array(__CLASS__ => array(
-    'title' => array(
-      'separator' => ' - '
-    ),
-    'themes' => array(
-      'default' => array(
-        'base' => 'public/themes',
-        'name' => 'default', 'html' => 'index.html'
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'title' => array(
+        'separator' => ' - '
+      ),
+      'themes' => array(
+        'default' => array(
+          'base' => 'public/themes',
+          'name' => 'default',
+          'html' => 'index.html'
+        )
       )
     )
-  ));
+  );
   public $type;
   public $lang;
   public $head;
@@ -52,11 +55,9 @@ class Page extends Helper\HTML
     $this->node = $this->document->root->node;
     $this->lang = $lang;
     $this->head = $this->append('head');
-    $this->charset = $this->head
-      ->append('meta',
-        array(
-          'charset' => $this->document->encoding
-        ));
+    $this->charset = $this->head->append('meta', array(
+      'charset' => $this->document->encoding
+    ));
     $this->title = $this->head->append('title');
     $this->body = $this->append('body');
     $this->router = Core\Router::instance();
@@ -64,11 +65,11 @@ class Page extends Helper\HTML
     $this->response = Core\Net\HTTP\Response::instance();
     $this->theme = static::cfg('themes.default');
     foreach (static::cfg('themes') as $name => $theme) {
-      extract(array_merge(array(
-      ), $theme), EXTR_PREFIX_ALL, 'theme');
+      extract(array_merge(array(), $theme), EXTR_PREFIX_ALL, 'theme');
       if (isset($theme_for) && $this->request->is($theme_for)) {
         $this->theme = array_merge(array(
-          'base' => 'public/themes'), $theme);
+          'base' => 'public/themes'
+        ), $theme);
       }
     }
     $this->ui = new UI($this, $this->theme);
@@ -104,21 +105,19 @@ class Page extends Helper\HTML
       $title = implode(array_filter($separator, $title));
     }
     $this->body->node('.aldu-core-view-helper-html-page-title')->text($title);
-    $this->title
-      ->text(
-        implode($separator,
-          array_filter(array(
-            $prepend, $title, $append
-          ))));
+    $this->title->text(implode($separator, array_filter(array(
+      $prepend,
+      $title,
+      $append
+    ))));
   }
 
   public function description($description)
   {
     if (!count($node = $this->head->node('meta[name=description]'))) {
-      $node = $this->head
-        ->append('meta', array(
-          'name' => 'description'
-        ));
+      $node = $this->head->append('meta', array(
+        'name' => 'description'
+      ));
     }
     $node->content = $description;
   }
@@ -129,10 +128,9 @@ class Page extends Helper\HTML
       $keywords = implode(',', $keywords);
     }
     if (!count($node = $this->head->node('meta[name=keywords]'))) {
-      $node = $this->head
-        ->append('meta', array(
-          'name' => 'keywords'
-        ));
+      $node = $this->head->append('meta', array(
+        'name' => 'keywords'
+      ));
     }
     $node->content = $keywords;
   }
@@ -142,11 +140,11 @@ class Page extends Helper\HTML
     if (!count($node = $this->head->node('base'))) {
       $node = $this->head->prepend('base');
     }
-    $base = $base ?
-      : implode('/',
-        array(
-          $this->theme['base'], $this->theme['name'], null
-        ));
+    $base = $base ? : implode('/', array(
+      $this->theme['base'],
+      $this->theme['name'],
+      null
+    ));
     $node->href = $this->router->fullBase . $base;
   }
 
@@ -157,8 +155,7 @@ class Page extends Helper\HTML
     }
     foreach ($context->node('a') as $anchor) {
       $href = $anchor->href;
-      if (substr($href, 0, 1) === '/'
-        && !preg_match("#^{$this->router->basePrefix}#", $href)) {
+      if (substr($href, 0, 1) === '/' && !preg_match("#^{$this->router->basePrefix}#", $href)) {
         $anchor->href = $this->router->basePrefix . substr($href, 1);
       }
     }
@@ -170,11 +167,11 @@ class Page extends Helper\HTML
       $context = $this->body;
     }
     foreach ($context->node('.aldu-core-view-helper-html-page-block') as $node) {
-      foreach (explode(' ', $node->data('position')) as $position) {
+      foreach (explode(' ', $node->data('block-position')) as $position) {
         $this->router->openContext($position);
         foreach (Models\Block::read(array(
-            'position' => $position
-          )) as $block) {
+          'position' => $position
+        )) as $block) {
           $this->router->openContext($block->name);
           if ($block->showtitle) {
             $node->append('h2.aldu-core-view-helper-html-page-block-title', $block->title);
@@ -192,14 +189,11 @@ class Page extends Helper\HTML
   public function compose($content = null)
   {
     $this->base();
-    $this->body
-      ->data(
-        array(
-          'aldu-core-router-base' => $this->router->base,
-          'aldu-core-router-path' => $this->router->path
-        ));
-    if (!count(
-      $node = $this->body->node('#aldu-core-view-helper-html-page-content'))) {
+    $this->body->data(array(
+      'aldu-core-router-base' => $this->router->base,
+      'aldu-core-router-path' => $this->router->path
+    ));
+    if (!count($node = $this->body->node('#aldu-core-view-helper-html-page-content'))) {
       $node = $this->body;
     }
     if ($content instanceof Helper\DOM\Node) {

@@ -36,8 +36,22 @@ class Document extends Helper\DOM
   protected $document;
   protected $xpath;
   protected $voidElements = array(
-    'area', 'base', 'br', 'col', 'command', 'embed', 'hr', 'img', 'input',
-    'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr'
+    'area',
+    'base',
+    'br',
+    'col',
+    'command',
+    'embed',
+    'hr',
+    'img',
+    'input',
+    'keygen',
+    'link',
+    'meta',
+    'param',
+    'source',
+    'track',
+    'wbr'
   );
 
   public function __construct($type = 'html', $publicId = null, $systemId = null)
@@ -47,8 +61,7 @@ class Document extends Helper\DOM
     $this->encoding = "utf-8";
     $this->implementation = new DOMImplementation();
     $this->doctype = $this->implementation->createDocumentType($this->type, $publicId, $systemId);
-    $this->document = $this->implementation->createDocument(null, $this->type,
-      $this->doctype);
+    $this->document = $this->implementation->createDocument(null, $this->type, $this->doctype);
     $this->document->xmlVersion = "1.0";
     $this->document->xmlStandalone = true;
     $this->document->encoding = $this->encoding;
@@ -67,8 +80,9 @@ class Document extends Helper\DOM
   public function __call($name, $arguments)
   {
     return call_user_func_array(array(
-        $this->document, $name
-      ), $arguments);
+      $this->document,
+      $name
+    ), $arguments);
   }
 
   public function save($node = null)
@@ -125,7 +139,7 @@ class Document extends Helper\DOM
   public function query($selector, $context = null, $registerNodeNS = null)
   {
     $this->xpath = new DOMXPath($this->document);
-    $expression = $this->selectorToQuery($selector);
+    $expression = self::selectorToQuery($selector);
     if ($context) {
       if ($context->node instanceof NodeList) {
         $context = $context->node->item(0);
@@ -156,10 +170,7 @@ class Document extends Helper\DOM
   {
     if (substr(trim($name), 0, 1) === '<') {
       $new = new Document($this->type);
-      $new
-        ->load(
-          '<?xml version="1.0" encoding="utf-8"?><fragment>' . $name
-            . '</fragment>');
+      $new->load('<?xml version="1.0" encoding="utf-8"?><fragment>' . $name . '</fragment>');
       $nodes = array();
       foreach ($new->root->node('fragment > *') as $node) {
         $n = $this->document->importNode($node->node, true);
@@ -182,13 +193,13 @@ class Document extends Helper\DOM
       if (isset($attributes['class'])) {
         $classes[] = $attributes['class'];
       }
-      $attributes = array_merge($attributes,
-        array(
-          'class' => implode(" ", array_unique($classes))
-        ));
+      $attributes = array_merge($attributes, array(
+        'class' => implode(" ", array_unique($classes))
+      ));
     }
     list($name, $id) = explode('#', $name) + array(
-        null, null
+        null,
+        null
       );
     if ($id) {
       $attributes['id'] = $id;
@@ -202,7 +213,8 @@ class Document extends Helper\DOM
     }
     switch ($name) {
     case "img":
-      if (!$element->hasAttribute('alt')) $element->setAttribute('alt', '');
+      if (!$element->hasAttribute('alt'))
+        $element->setAttribute('alt', '');
       break;
     }
     if (is_object($value)) {
@@ -217,9 +229,7 @@ class Document extends Helper\DOM
       switch ($name) {
       case "script":
         $element->appendChild($this->document->createTextNode("//"));
-        $element
-          ->appendChild(
-            $this->document->createCDATASection("\n" . $value . "\n//"));
+        $element->appendChild($this->document->createCDATASection("\n" . $value . "\n//"));
         break;
       default:
         switch ($this->type) {
@@ -239,34 +249,55 @@ class Document extends Helper\DOM
     return $this->document->importNode($node, true);
   }
 
-  protected function selectorToQuery($selector)
+  public static function selectorToQueryOld($selector)
   {
     $selector = (string) $selector;
     $cssSelector = array(
-      '/\*/', // *
-      '/(\w)/', // E
-      '/(\w)\s+(\w)/', // E F
-      '/(\w)\s*>\s*(\w)/', // E > F
-      '/(\w)\s*>\s*\*/', // E > *
-      '/(\w):first-child/', // E:first-child
-      '/(\w)\s*:nth-child\(([0-9]+)\)/', // E:nth-child(n)
-      '/(\w)\s*\+\s*(\w)/', // E + F
-      '/(\w)\[([\w\-]+)\]/', // E[foo]
-      '/(\w)\[([\w\-]+)\=\"(.*)\"\]/', // E[foo="bar"]
-      '/(\w+)+\.([\w\-]+)+/', // E.class
-      '/\.([\w\-]+)+/', // .class
-      '/(\w+)+\#([\w\-]+)/', // E#id
+      '/\*/',
+      // *
+      '/(\w)/',
+      // E
+      '/(\w)\s+(\w)/',
+      // E F
+      '/(\w)\s*>\s*(\w)/',
+      // E > F
+      '/(\w)\s*>\s*\*/',
+      // E > *
+      '/(\w):first-child/',
+      // E:first-child
+      '/(\w)\s*:nth-child\(([0-9]+)\)/',
+      // E:nth-child(n)
+      '/(\w)\s*\+\s*(\w)/',
+      // E + F
+      '/(\w)\[([\w\-]+)\]/',
+      // E[foo]
+      '/(\w)\[([\w\-]+)\=\"(.*)\"\]/',
+      // E[foo="bar"]
+      '/(\w+)+\.([\w\-]+)+/',
+      // E.class
+      '/\.([\w\-]+)+/',
+      // .class
+      '/(\w+)+\#([\w\-]+)/',
+      // E#id
       '/\#([\w\-]+)/' // #id
     );
     $xPathQuery = array(
-      '*', // *
-      '\1', // E
-      '\1//\2', // E F
-      '\1/\2', // E > F
-      '\1/*', // E > *
-      '*[1]/self::\1', // E:first-child
-      '\1[position() = \2]', // E:nth-child(n)
-      '\1/following-sibling::*[1]/self::\2', // E + F
+      '*',
+      // *
+      '\1',
+      // E
+      '\1//\2',
+      // E F
+      '\1/\2',
+      // E > F
+      '\1/*',
+      // E > *
+      '*[1]/self::\1',
+      // E:first-child
+      '\1[position() = \2]',
+      // E:nth-child(n)
+      '\1/following-sibling::*[1]/self::\2',
+      // E + F
       '\1 [ @\2 ]',
       // E[foo]
       '\1[ contains( concat( " ", @\2, " " ), concat( " ", "\3", " " ) ) ]',
@@ -275,9 +306,111 @@ class Document extends Helper\DOM
       // E.class
       '*[ contains( concat( " ", @class, " " ), concat( " ", "\1", " " ) ) ]',
       // .class
-      '\1[ @id = "\2" ]', // E#id
+      '\1[ @id = "\2" ]',
+      // E#id
       '*[ @id = "\1" ]' // #id
     );
     return (string) './/' . preg_replace($cssSelector, $xPathQuery, $selector);
+  }
+
+  /**
+   * Transform CSS expression to XPath
+   *
+   * @param  string $path
+   * @return string
+   */
+  public static function selectorToQuery($path)
+  {
+    $path = (string) $path;
+    if (strstr($path, ',')) {
+      $paths = explode(',', $path);
+      $expressions = array();
+      foreach ($paths as $path) {
+        $xpath = self::selectorToQuery(trim($path));
+        if (is_string($xpath)) {
+          $expressions[] = $xpath;
+        }
+        elseif (is_array($xpath)) {
+          $expressions = array_merge($expressions, $xpath);
+        }
+      }
+      return implode('|', $expressions);
+    }
+
+    $paths = array(
+      './/'
+    );
+    $path = preg_replace('|\s+>\s+|', '>', $path);
+    $segments = preg_split('/\s+/', $path);
+    foreach ($segments as $key => $segment) {
+      $pathSegment = self::_tokenize($segment);
+      if (0 == $key) {
+        if (0 === strpos($pathSegment, '[contains(')) {
+          $paths[0] .= '*' . ltrim($pathSegment, '*');
+        }
+        else {
+          $paths[0] .= $pathSegment;
+        }
+        continue;
+      }
+      if (0 === strpos($pathSegment, '[contains(')) {
+        foreach ($paths as $key => $xpath) {
+          $paths[$key] .= '//*' . ltrim($pathSegment, '*');
+          $paths[] = $xpath . $pathSegment;
+        }
+      }
+      else {
+        foreach ($paths as $key => $xpath) {
+          $paths[$key] .= '//' . $pathSegment;
+        }
+      }
+    }
+
+    if (1 == count($paths)) {
+      return $paths[0];
+    }
+    return implode('|', $paths);
+  }
+
+  /**
+   * Tokenize CSS expressions to XPath
+   *
+   * @param  string $expression
+   * @return string
+   */
+  protected static function _tokenize($expression)
+  {
+    // Child selectors
+    $expression = str_replace('>', '/', $expression);
+
+    // IDs
+    $expression = preg_replace('|#([a-z][a-z0-9_-]*)|i', '[@id=\'$1\']', $expression);
+    $expression = preg_replace('|(?<![a-z0-9_-])(\[@id=)|i', '*$1', $expression);
+
+    // arbitrary attribute strict equality
+    $expression = preg_replace_callback('|\[([a-z0-9_-]+)=[\'"]([^\'"]+)[\'"]\]|i', function ($matches)
+    {
+      return '[@' . strtolower($matches[1]) . "='" . $matches[2] . "']";
+    }, $expression);
+
+    // arbitrary attribute contains full word
+    $expression = preg_replace_callback('|\[([a-z0-9_-]+)~=[\'"]([^\'"]+)[\'"]\]|i', function ($matches)
+    {
+      return "[contains(concat(' ', normalize-space(@" . strtolower($matches[1]) . "), ' '), ' " . $matches[2] . " ')]";
+    }, $expression);
+
+    // arbitrary attribute contains specified content
+    $expression = preg_replace_callback('|\[([a-z0-9_-]+)\*=[\'"]([^\'"]+)[\'"]\]|i', function ($matches)
+    {
+      return "[contains(@" . strtolower($matches[1]) . ", '" . $matches[2] . "')]";
+    }, $expression);
+
+    // Classes
+    $expression = preg_replace('|\.([a-z][a-z0-9_-]*)|i', "[contains(concat(' ', normalize-space(@class), ' '), ' \$1 ')]", $expression);
+
+    /** ZF-9764 -- remove double asterisk */
+    $expression = str_replace('**', '*', $expression);
+
+    return $expression;
   }
 }

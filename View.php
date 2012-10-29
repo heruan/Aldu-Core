@@ -18,9 +18,7 @@
 
 namespace Aldu\Core;
 use Aldu\Core\Utility\Inflector;
-
 use Aldu\Core\Utility\ClassLoader;
-
 use Aldu\Core\View\Helper;
 use Aldu\Core\Net\HTTP;
 use DateTime;
@@ -35,32 +33,36 @@ class View extends Stub
   protected $request;
   protected $response;
 
-  protected static $configuration = array(__CLASS__ => array(
-    'shortcuts' => array(
-      'static' => array(
-        'browse' => array(
-          'title' => "Browse %s",
-          'inflection' => 'plural',
-          'attributes' => array(
-            'data-icon' => 'grid'
-           )
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'shortcuts' => array(
+        'static' => array(
+          'browse' => array(
+            'title' => "Browse %s",
+            'inflection' => 'plural',
+            'attributes' => array(
+              'data-icon' => 'grid'
+            )
+          ),
+          'add' => array(
+            'title' => "Create %s",
+            'attributes' => array(
+              'data-icon' => 'plus'
+            )
+          )
         ),
-        'add' => array(
-          'title' => "Create %s",
-          'attributes' => array(
-            'data-icon' => 'plus'
+        'model' => array(
+          //'read' => array('title' => "Read %s %s"),
+          'edit' => array(
+            'title' => "Edit %s %s"
+          ),
+          'delete' => array(
+            'title' => "Delete %s %s"
           )
         )
-      ),
-      'model' => array(
-        //'read' => array('title' => "Read %s %s"),
-        'edit' => array(
-          'title' => "Edit %s %s"
-        ),
-        'delete' => array('title' => "Delete %s %s")
       )
     )
-  ));
+  );
 
   public function __construct($model, HTTP\Request $request = null, HTTP\Response $response = null)
   {
@@ -68,8 +70,8 @@ class View extends Stub
     $this->model = is_object($model) ? $model : new $model();
     $this->locale = Locale::instance();
     $this->router = Router::instance();
-    $this->request = $request ?: HTTP\Request::instance();
-    $this->response = $response ?: HTTP\Response::instance();
+    $this->request = $request ? : HTTP\Request::instance();
+    $this->response = $response ? : HTTP\Response::instance();
     $this->render = $this->request->query('render');
   }
 
@@ -83,7 +85,9 @@ class View extends Stub
       'value' => null,
       'model' => $this->model,
       'search' => array(),
-      'options' => array('limit' => 10)
+      'options' => array(
+        'limit' => 10
+      )
     ), $_);
     extract($_);
     $models = array();
@@ -103,14 +107,13 @@ class View extends Stub
       ));
     }
     if (!$required) {
-      $select->node('select')
-        ->prepend('option')
-        ->text($this->locale->t('None'));
+      $select->node('select')->prepend('option')->text($this->locale->t('None'));
     }
     if ($placeholder) {
-      $select->node('select')
-        ->prepend('option', array('selected' => true, 'disabled' => true))
-        ->text($this->locale->t('Select %s', $model->name()));
+      $select->node('select')->prepend('option', array(
+        'selected' => true,
+        'disabled' => true
+      ))->text($this->locale->t('Select %s', $model->name()));
     }
     return $select;
   }
@@ -120,7 +123,7 @@ class View extends Stub
     $class = get_class($model);
     $form = new Helper\HTML\Form($model, $action);
     $form->hidden('id');
-    $fields = static::cfg('form.fields') ?: array_keys($model->__toArray());
+    $fields = static::cfg('form.fields') ? : array_keys($model->__toArray());
     foreach ($fields as $field => $options) {
       if (is_numeric($field)) {
         $field = $options;
@@ -130,7 +133,7 @@ class View extends Stub
         'title' => $this->locale->t(ucfirst($field)),
         'type' => $this->model->cfg("attributes.$field.type") ? : 'text',
         'attributes' => array()
-        ), $options));
+      ), $options));
       switch ($type) {
       case is_subclass_of($type, 'Aldu\Core\Model'):
         $type::view()->select($form, $field, array(
@@ -147,8 +150,10 @@ class View extends Stub
         $form->select($field, array(
           'title' => $title,
           'options' => array_combine($type, $type),
-          'attributes' => array('multiple' => true)
-          ));
+          'attributes' => array(
+            'multiple' => true
+          )
+        ));
         break;
       default:
         $form->$type($field, array(
@@ -157,19 +162,22 @@ class View extends Stub
         ));
       }
     }
-    foreach (array('has', 'belongs') as $rel) {
+    foreach (array(
+      'has',
+      'belongs'
+    ) as $rel) {
       foreach (static::cfg("form.$rel") as $rel_name => $relation) {
         extract(array_merge(array(
-        'model' => null,
-        'search' => array(),
-        'options' => array(),
-        'fieldset' => false,
-        'type' => 'checkbox',
-        'title' => null,
-        'attributes' => array(),
-        'relation' => array()
+          'model' => null,
+          'search' => array(),
+          'options' => array(),
+          'fieldset' => false,
+          'type' => 'checkbox',
+          'title' => null,
+          'attributes' => array(),
+          'relation' => array()
         ), $relation), EXTR_PREFIX_ALL, 'rel');
-        $rel_title = $rel_title ?: $rel_model::name('plural');
+        $rel_title = $rel_title ? : $rel_model::name('plural');
         if (ClassLoader::classExists($rel_model)) {
           if ($rel_fieldset) {
             $rel_fieldset = array_merge(array(
@@ -192,9 +200,11 @@ class View extends Stub
               }
             }
             $rel_model::view()->select($form, $rel_model, array(
-                'title' => $rel_title,
-                'attributes' => $rel_attributes,
-                'relation' => array('type' => $rel)
+              'title' => $rel_title,
+              'attributes' => $rel_attributes,
+              'relation' => array(
+                'type' => $rel
+              )
             ));
             continue;
           }
@@ -207,7 +217,9 @@ class View extends Stub
             $relElement = $form->$rel_type($rel_model, array(
               'title' => $tag->label(),
               'attributes' => $rel_attributes,
-              'relation' => array('type' => $rel),
+              'relation' => array(
+                'type' => $rel
+              ),
               'value' => $tag->id
             ));
             foreach ($rel_relation as $_rel_name => $_relation) {
@@ -242,7 +254,7 @@ class View extends Stub
     extract(array_merge(array(
       'actions' => static::cfg('table.actions'),
       'headers' => static::cfg('table.headers'),
-      'columns' => static::cfg('table.columns') ?
+      'columns' => static::cfg('table.columns') ? 
         : array_combine(array_keys($this->model->__toArray()), array_keys($this->model->__toArray()))
     ), $_));
     foreach ($columns as $name => $title) {
@@ -303,7 +315,7 @@ class View extends Stub
 
   public function browse($models = array())
   {
-    $render = $this->request->query('render') ?: $this->render;
+    $render = $this->request->query('render') ? : $this->render;
     switch ($render) {
     case 'json':
       $json = array();
@@ -315,7 +327,6 @@ class View extends Stub
     case 'page':
     default:
       $page = new Helper\HTML\Page();
-      $page->theme();
       $page->title($this->locale->t('Browse %s', $this->model->name('plural')));
       $table = $this->listview($models);
       return $this->response->body($page->compose($table));
@@ -327,22 +338,19 @@ class View extends Stub
     $this->model = $model;
   }
 
-
   public function edit($model)
   {
     $this->model = $model;
     switch ($this->render) {
-      case 'page':
-      default:
-        $page = new Helper\HTML\Page();
-        $page->theme();
-        $page->title($this->locale->t('Edit %s %s', $this->model->name(), $model->id));
-        $form = $this->form($model, __FUNCTION__);
-        $form->submit();
-        return $this->response->body($page->compose($form));
+    case 'page':
+    default:
+      $page = new Helper\HTML\Page();
+      $page->title($this->locale->t('Edit %s %s', $this->model->name(), $model->id));
+      $form = $this->form($model, __FUNCTION__);
+      $form->submit();
+      return $this->response->body($page->compose($form));
     }
   }
-
 
   public function add()
   {
@@ -350,14 +358,12 @@ class View extends Stub
     case 'page':
     default:
       $page = new Helper\HTML\Page();
-      $page->theme();
       $page->title($this->locale->t('Add new %s', $this->model->name()));
       $form = $this->form($this->model, __FUNCTION__);
       $form->submit();
       return $this->response->body($page->compose($form));
     }
   }
-
 
   public static function shortcuts($block, $element)
   {
@@ -384,9 +390,9 @@ class View extends Stub
         $model = $route->controller->view->model;
         foreach (static::cfg('shortcuts.model') as $action => $options) {
           extract(array_merge(array(
-          'title' => null,
-          'inflection' => null,
-          'attributes' => array()
+            'title' => null,
+            'inflection' => null,
+            'attributes' => array()
           ), $options));
           if ($model->authorized($router->request->aro, $action)) {
             $href = $model->url($action);

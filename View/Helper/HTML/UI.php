@@ -40,7 +40,30 @@ class UI extends Helper\HTML
     $engine = $engine ? : $this->engine;
     switch ($engine) {
     case 'bootstrap':
-      $levels = array('info', 'success', 'error', 'notice', 'debug');
+    // aldu-ui-container
+      $node->node('.aldu-ui-container')->addClass('container');
+      // aldu-ui-toolbar
+      $toolbar = $node->node('.aldu-ui-toolbar')->addClass('navbar');
+      $node->node('.aldu-ui-toolbar.top')->addClass('navbar-fixed-top');
+      $node->node('.aldu-ui-toolbar.bottom')->addClass('navbar-fixed-bottom');
+      $toolbar->node('.aldu-ui-toolbar-menu')->addClass('navbar-inner');
+      $toolbar->node('.aldu-ui-toolbar-menu .menu')->addClass('nav');
+      $toolbar->node('.aldu-ui-toolbar-drawer')->addClass('btn-toolbar');
+      $toolbar->node('.aldu-ui-toolbar-drawer ul')->addClass('btn-group');
+      $toolbar->node('.aldu-ui-toolbar-drawer ul li')->addClass('btn');
+      $toolbar->node('.aldu-ui-home')->addClass('brand');
+      $toolbar->node('.aldu-core-view-shortcuts');
+      // aldu-ui-float
+      $node->node('.aldu-ui-float-left')->addClass('pull-left');
+      $node->node('.aldu-ui-float-right')->addClass('pull-right');
+      // aldu-ui-messages
+      $levels = array(
+        'info',
+        'success',
+        'error',
+        'notice',
+        'debug'
+      );
       foreach ($node->node('div.aldu-core-view-helper-html-ui-message') as $message) {
         $message->addClass('alert');
         foreach ($levels as $level) {
@@ -49,14 +72,15 @@ class UI extends Helper\HTML
           }
         }
       }
+      // aldu-ui-form
       $node->node('div.aldu-core-view-helper-html-form-file')->addClass('btn fileinput-button');
+      // aldu-ui-table
       $node->node('#aldu-core-view-helper-html-page-content table')->addClass('table table-striped');
       break;
     case 'jquery.mobile':
-      foreach ($node->node('ul.aldu-blog-view-menu') as $menu) {
+      foreach ($node->node('ul.aldu-blog-views-menu') as $menu) {
         $menu->data(array(
-          'role' => 'listview',
-        //'inset' => 'true'
+          'role' => 'listview'
         ));
         $menu->node('li > a')->data('transition', 'slide');
         $menu->node('li.active')->data('theme', 'a');
@@ -104,7 +128,10 @@ class UI extends Helper\HTML
     case 'notice':
     case 'error':
     case 'debug':
-      list ($text, $title) = $args + array(null, null);
+      list($text, $title) = $args + array(
+          null,
+          null
+        );
       $element = $this->document->create("div.aldu-core-view-helper-html-ui-message.$function");
       if ($title) {
         $element->strong($title);

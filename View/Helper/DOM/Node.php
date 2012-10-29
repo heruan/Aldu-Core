@@ -58,6 +58,7 @@ class Node extends Helper\DOM implements Iterator, Countable
   public function set($name, $value)
   {
     $this->$name = $value;
+    return $this;
   }
 
   public function get($name)
@@ -69,44 +70,37 @@ class Node extends Helper\DOM implements Iterator, Countable
   {
     if ($this->node instanceof NodeList) {
       foreach ($this->node as $node) {
-        if (is_null($value)) $node->removeAttribute($name);
-        else $node->setAttribute($name, $value);
+        if (is_null($value))
+          $node->removeAttribute($name);
+        else
+          $node->setAttribute($name, $value);
       }
     }
     else {
-      if (is_null($value)) $this->node->removeAttribute($name);
+      if (is_null($value))
+        $this->node->removeAttribute($name);
       else {
         $this->node->setAttribute($name, $value);
       }
     }
   }
 
-  public function index($index = null)
-  {
-    if ($index !== null) {
-      return new Node($this->document, $this->node->childNodes->item($index));
-    }
-    $index = 0;
-    $prev = $this->node->previousSibling;
-    while ($prev) {
-      $prev = $prev->previousSibling;
-      $index++;
-    }
-    return $index;
-  }
-
   public function __get($name)
   {
     switch ($name) {
-      case 'node':
-        return $this->node;
-      case 'parent':
-        return new self($this->document, $this->node->parentNode);
-      default:
-        if ($this->node instanceof NodeList) {
-          return $this->node->item(0) ? $this->node->item(0)->getAttribute($name) : null;
+    case 'node':
+      return $this->node;
+    case 'parent':
+      return new self($this->document, $this->node->parentNode);
+    default:
+      if ($this->node instanceof NodeList) {
+        $get = array();
+        foreach ($this->node as $node) {
+          $get[] = $node->$name;
         }
-        return $this->node->getAttribute($name);
+        return implode(' ', $get);
+      }
+      return $this->node->getAttribute($name);
     }
   }
 
@@ -126,18 +120,35 @@ class Node extends Helper\DOM implements Iterator, Countable
       }
     }
     else {
-      $this->node-removeAttribute($name);
+      $this->node - removeAttribute($name);
     }
   }
 
   public function __call($name, $arguments)
   {
     switch ($name) {
-      default:
-        array_unshift($arguments, $name);
-        $node = call_user_func_array(array($this->document, 'create'), $arguments);
-        return $this->append($node);
+    default:
+      array_unshift($arguments, $name);
+      $node = call_user_func_array(array(
+        $this->document,
+        'create'
+      ), $arguments);
+      return $this->append($node);
     }
+  }
+
+  public function index($index = null)
+  {
+    if ($index !== null) {
+      return new Node($this->document, $this->node->childNodes->item($index));
+    }
+    $index = 0;
+    $prev = $this->node->previousSibling;
+    while ($prev) {
+      $prev = $prev->previousSibling;
+      $index++;
+    }
+    return $index;
   }
 
   public function shift()
@@ -156,7 +167,10 @@ class Node extends Helper\DOM implements Iterator, Countable
 
   public function create()
   {
-    return call_user_func_array(array($this->document, 'create'), func_get_args());
+    return call_user_func_array(array(
+      $this->document,
+      'create'
+    ), func_get_args());
   }
 
   public function remove()
@@ -174,8 +188,7 @@ class Node extends Helper\DOM implements Iterator, Countable
 
   public function purge()
   {
-    foreach ($this->node->childNodes as $child)
-    {
+    foreach ($this->node->childNodes as $child) {
       $this->node->removeChild($child);
     }
   }
@@ -224,12 +237,18 @@ class Node extends Helper\DOM implements Iterator, Countable
   {
     $nodes = func_get_args();
     if (is_string(current($nodes))) {
-      $nodes = array(call_user_func_array(array($this->document, 'create'), $nodes));
+      $nodes = array(
+        call_user_func_array(array(
+          $this->document,
+          'create'
+        ), $nodes)
+      );
     }
     if ($this->node instanceof NodeList) {
       foreach ($this->node as $item) {
         foreach ($nodes as $node) {
-          if (!$node) continue;
+          if (!$node)
+            continue;
           if ($node->node instanceof NodeList) {
             foreach ($node->node as $n) {
               if ($this->node->length === 1) {
@@ -253,7 +272,8 @@ class Node extends Helper\DOM implements Iterator, Countable
     }
     else {
       foreach ($nodes as $node) {
-        if (!$node) continue;
+        if (!$node)
+          continue;
         if ($node->node instanceof NodeList) {
           foreach ($node->node as $n) {
             $this->node->appendChild($n);
@@ -271,12 +291,18 @@ class Node extends Helper\DOM implements Iterator, Countable
   {
     $nodes = func_get_args();
     if (is_string(current($nodes))) {
-      $nodes = array(call_user_func_array(array($this->document, 'create'), $nodes));
+      $nodes = array(
+        call_user_func_array(array(
+          $this->document,
+          'create'
+        ), $nodes)
+      );
     }
     if ($this->node instanceof NodeList) {
       foreach ($this->node as $item) {
         foreach ($nodes as $node) {
-          if (!$node) continue;
+          if (!$node)
+            continue;
           if ($this->node->length === 1) {
             $item->insertBefore($node->node, $item->firstChild);
             break;
@@ -287,7 +313,8 @@ class Node extends Helper\DOM implements Iterator, Countable
     }
     else {
       foreach ($nodes as $node) {
-        if (!$node) continue;
+        if (!$node)
+          continue;
         $this->node->insertBefore($node->node, $this->node->firstChild);
       }
     }
