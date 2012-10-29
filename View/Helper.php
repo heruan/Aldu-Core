@@ -22,5 +22,5 @@ use Aldu\Core;
 
 class Helper extends Core\Stub implements HelperInterface
 {
-  
+
 }

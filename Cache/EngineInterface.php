@@ -17,8 +17,7 @@
  */
 
 namespace Aldu\Core\Cache;
-
 interface EngineInterface
 {
-  
+
 }

@@ -17,8 +17,7 @@
  */
 
 namespace Aldu\Core\Model\Datasource;
-
 interface DriverInterface
 {
-  
+
 }

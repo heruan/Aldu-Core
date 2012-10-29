@@ -30,39 +30,40 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   const DEFAULT_PORT = 3306;
   const DATETIME_FORMAT = 'Y-m-d H:i:s';
   const INDEX_TABLE = '_index';
-  protected static $configuration = array(__CLASS__ => array(
-    'encryption' => 'md5',
-    'debug' => array(
-      'all' => false, 'read' => false
-    ), 'revisions' => false
-  ));
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'encryption' => 'md5',
+      'debug' => array(
+        'all' => false,
+        'read' => false
+      ),
+      'revisions' => false
+    )
+  );
   protected $database;
 
   public function __construct($url, $parts)
   {
     parent::__construct($url);
-    $conn = array_merge(
-      array(
-        'host' => 'localhost', 'port' => self::DEFAULT_PORT, 'user' => null,
-        'pass' => null, 'path' => null
-      ), $parts);
+    $conn = array_merge(array(
+      'host' => 'localhost',
+      'port' => self::DEFAULT_PORT,
+      'user' => null,
+      'pass' => null,
+      'path' => null
+    ), $parts);
     $this->database = ltrim($conn['path'], '/');
-    if (!$this->link = new mysqli($conn['host'], $conn['user'], $conn['pass'],
-      $this->database, $conn['port'])) {
+    if (!$this->link = new mysqli($conn['host'], $conn['user'], $conn['pass'], $this->database, $conn['port'])) {
       throw new Exception('Cannot connect MySQL driver to ' . $conn['host']);
     }
     $this->query("SET NAMES 'utf8'");
     while (!$this->link->select_db($this->database)) {
-      if (!$this
-        ->query(
-          "CREATE DATABASE `%s` DEFAULT CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci'",
-          $this->database)) {
+      if (!$this->query("CREATE DATABASE `%s` DEFAULT CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci'", $this->database)) {
         throw new Exception($this->link->error);
       }
     }
     if (!$this->tableExists('_index')) {
-      $query = file_get_contents(
-        __DIR__ . DS . 'MySQL' . DS . 'create-index-table.sql');
+      $query = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-index-table.sql');
       $this->query($query);
     }
   }
@@ -113,16 +114,19 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   protected function describe($table)
   {
     $keys = array(
-      'primary' => array(), 'unique' => array(), 'indexes' => array()
+      'primary' => array(),
+      'unique' => array(),
+      'indexes' => array()
     );
     $fields = array();
     foreach ($this->tables("$table%") as $table) {
-    $describe = $this->query("DESCRIBE `%s`", $table);
+      $describe = $this->query("DESCRIBE `%s`", $table);
       foreach ($describe as $field) {
         $fields[$field['Field']] = array(
           'type' => $field['Type'],
           'null' => $field['Null'] === 'YES' ? true : false,
-          'default' => $field['Default'], 'extra' => $field['Extra']
+          'default' => $field['Default'],
+          'extra' => $field['Extra']
         );
         switch ($field['Key']) {
         case 'PRI':
@@ -138,7 +142,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       }
     }
     return array(
-      'fields' => $fields, 'keys' => $keys
+      'fields' => $fields,
+      'keys' => $keys
     );
   }
 
@@ -183,13 +188,14 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     return false;
   }
 
-  protected function createQuery($class, $attribute, $column = null,
-    $null = null)
+  protected function createQuery($class, $attribute, $column = null, $null = null)
   {
-    $options = array_merge(
-      array(
-        'type' => 'text', 'other' => null, 'null' => true, 'default' => null
-      ), $class::cfg("attributes.$attribute"));
+    $options = array_merge(array(
+      'type' => 'text',
+      'other' => null,
+      'null' => true,
+      'default' => null
+    ), $class::cfg("attributes.$attribute"));
     if (is_bool($null)) {
       $options['null'] = $null;
     }
@@ -203,34 +209,31 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 
   protected function createType($column, $options = array())
   {
-    extract(
-      array_merge(
-        array(
-          'type' => null, 'other' => null, 'null' => true, 'default' => null,
-          'increment' => null
-        ), $options));
+    extract(array_merge(array(
+      'type' => null,
+      'other' => null,
+      'null' => true,
+      'default' => null,
+      'increment' => null
+    ), $options));
     if (is_array($default)) {
-      $default = implode(",",
-        array_map('var_export', $default, array_fill(0, count($default), true)));
+      $default = implode(",", array_map('var_export', $default, array_fill(0, count($default), true)));
     }
     elseif ($default) {
       $default = var_export($this->denormalizeValue($default, $column), true);
     }
-    $default = is_null($default) ? ($null ? "DEFAULT NULL" : '')
-      : "DEFAULT $default";
+    $default = is_null($default) ? ($null ? "DEFAULT NULL" : '') : "DEFAULT $default";
     $null = $null ? "" : "NOT NULL";
     if (is_array($type)) {
       return "`$column` SET("
-        . implode(",",
-          array_map('var_export', $type, array_fill(0, count($type), true)))
-        . ") $null $default,\n\t";
+        . implode(",", array_map('var_export', $type, array_fill(0, count($type), true))) . ") $null $default,\n\t";
     }
     switch ($increment) {
-      case 'auto':
-        $increment = 'AUTO_INCREMENT';
-        break;
-      default:
-        $increment = '';
+    case 'auto':
+      $increment = 'AUTO_INCREMENT';
+      break;
+    default:
+      $increment = '';
     }
     switch ($type) {
     case 'int':
@@ -270,9 +273,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $_table = $table . "$i";
       }
       $table = $_table;
-      $this
-        ->query("INSERT INTO `" . self::INDEX_TABLE . "` VALUES ('%s', '%s')",
-          $class, $table);
+      $this->query("INSERT INTO `" . self::INDEX_TABLE . "` VALUES ('%s', '%s')", $class, $table);
     }
     if (!$this->tableExists($table)) {
       $columns = get_public_vars($class);
@@ -293,8 +294,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         if ($column === 'id') {
           continue;
         }
-        if (($type = $class::cfg("attributes.$column.type"))
-          && is_subclass_of($type, 'Aldu\Core\Model')) {
+        if (($type = $class::cfg("attributes.$column.type")) && is_subclass_of($type, 'Aldu\Core\Model')) {
           $refTable = ($class === $type) ? $table : $this->tableName($type);
           if ($table !== $refTable && !$this->tableExists($refTable)) {
             $this->tablesFor($type);
@@ -402,8 +402,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   public function nextId($class)
   {
     $table = $this->tableName($class);
-    $result = $this->link->query("SHOW TABLE STATUS LIKE '$table'")
-      ->fetch_array();
+    $result = $this->link->query("SHOW TABLE STATUS LIKE '$table'")->fetch_array();
     return isset($result['Auto_increment']) ? $result['Auto_increment'] : null;
   }
 
@@ -412,8 +411,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $class = get_class($model);
     if ($table = $this->tableName($class)) {
       if ($this->first($class, array(
-          'id' => $model->id
-        ))) {
+        'id' => $model->id
+      ))) {
         return true;
       }
     }
@@ -477,8 +476,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     return "_tags-$table-$hasTable";
   }
 
-  protected function search($class, $search = array(), $logic = '$and',
-    $op = '=')
+  protected function search($class, $search = array(), $logic = '$and', $op = '=')
   {
     $where = array();
     foreach ($search as $conditions) {
@@ -685,8 +683,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     return $where ? "$where" : '1';
   }
 
-  protected function conditions($class, $search = array(), $logic = '$and',
-    $op = '=')
+  protected function conditions($class, $search = array(), $logic = '$and', $op = '=')
   {
     $and = array();
     $where = array();
@@ -844,8 +841,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $fields = $model->__toArray();
       $this->denormalizeArray($fields, $class);
       foreach ($tables as $table) {
-        $values = array_intersect_key($fields,
-          array_flip($this->columns($table)));
+        $values = array_intersect_key($fields, array_flip($this->columns($table)));
         $columns = array_keys($values);
         $placeholders = array();
         $update = array();
@@ -868,10 +864,8 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
           }
           $update[] = "`$column` = VALUES(`$column`)";
         }
-        $query = "INSERT INTO `$table` (`" . implode('`, `', $columns)
-          . "`) VALUES ";
-        $query .= "(" . implode(', ', $placeholders)
-          . ") ON DUPLICATE KEY UPDATE " . implode(', ', $update);
+        $query = "INSERT INTO `$table` (`" . implode('`, `', $columns) . "`) VALUES ";
+        $query .= "(" . implode(', ', $placeholders) . ") ON DUPLICATE KEY UPDATE " . implode(', ', $update);
         $this->query($query, $values);
         if (!$model->id) {
           $model->id = $fields['id'] = $this->link->insert_id;
@@ -891,8 +885,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   {
     $class = get_class($model);
     if ($table = $this->tableName($class)) {
-      return $this
-        ->query("DELETE FROM `%s` WHERE `id` = %s", $table, $model->id);
+      return $this->query("DELETE FROM `%s` WHERE `id` = %s", $table, $model->id);
     }
     return false;
   }
@@ -923,15 +916,14 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       if (!$this->tableExists($hasTable)) {
         $this->createHasTableFor($model, $tag);
       }
-      $fields = array_merge(
-        array(
-          'model' => $model, 'tag' => $tag,
-          'created' => date(self::DATETIME_FORMAT)
-        ), $relation);
+      $fields = array_merge(array(
+        'model' => $model,
+        'tag' => $tag,
+        'created' => date(self::DATETIME_FORMAT)
+      ), $relation);
       $this->denormalizeArray($fields);
       $columns = implode('`, `', array_keys($fields));
-      $values = implode(', ',
-        array_map('var_export', $fields, array_fill(0, count($fields), true)));
+      $values = implode(', ', array_map('var_export', $fields, array_fill(0, count($fields), true)));
       $query = "REPLACE INTO `$hasTable` (`$columns`) VALUES ($values)";
       return $this->query($query);
     }
@@ -948,17 +940,13 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       }
     }
     foreach ($tags as $tag) {
-      if ($tag->id
-        && $table = $this->tableExists($this->hasTable($model, $tag))) {
-        $this
-          ->query("DELETE FROM `$table` WHERE `model` = %s AND `tag` = %s",
-            $model->id, $tag->id);
+      if ($tag->id && $table = $this->tableExists($this->hasTable($model, $tag))) {
+        $this->query("DELETE FROM `$table` WHERE `model` = %s AND `tag` = %s", $model->id, $tag->id);
       }
     }
   }
 
-  public function belongs($tag, $model, $relation = array(), $search = array(),
-    $options = array())
+  public function belongs($tag, $model, $relation = array(), $search = array(), $options = array())
   {
     if (!$tag->id) {
       return array();
@@ -981,8 +969,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', true);
         }
-        if ($rel = $this
-          ->query("SELECT * FROM `%s` WHERE $where $options", $hasTable)) {
+        if ($rel = $this->query("SELECT * FROM `%s` WHERE $where $options", $hasTable)) {
           $models = array_shift($rel);
           unset($models['model'], $models['tag']);
           $this->normalizeRow($hasTable, $models);
@@ -1004,26 +991,22 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', false);
         }
-        if ($search['id'] = array_map(
-          function ($row)
-          {
-            return $row['model'];
-          }, $rows)) {
-          $models = array_merge($models,
-            $modelClass::read($search,
-              array(
-                'sort' => array(
-                  'id' => $search['id']
-                )
-              )));
+        if ($search['id'] = array_map(function ($row)
+        {
+          return $row['model'];
+        }, $rows)) {
+          $models = array_merge($models, $modelClass::read($search, array(
+            'sort' => array(
+              'id' => $search['id']
+            )
+          )));
         }
       }
     }
     return $models;
   }
 
-  public function has($model, $tag = null, $relation = array(),
-    $search = array(), $options = array())
+  public function has($model, $tag = null, $relation = array(), $search = array(), $options = array())
   {
     if (!$model->id) {
       return array();
@@ -1046,8 +1029,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', true);
         }
-        if ($rel = $this
-          ->query("SELECT * FROM `%s` WHERE $where $options", $hasTable)) {
+        if ($rel = $this->query("SELECT * FROM `%s` WHERE $where $options", $hasTable)) {
           $tags = array_shift($rel);
           unset($tags['model'], $tags['tag']);
         }
@@ -1065,23 +1047,19 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', true);
         }
-        $rows = $this
-          ->query("SELECT `tag` FROM `%s` WHERE $where $options", $hasTable);
+        $rows = $this->query("SELECT `tag` FROM `%s` WHERE $where $options", $hasTable);
         if (static::cfg('debug.has')) {
           static::cfg('debug.all', false);
         }
-        if ($search['id'] = array_map(
-          function ($row)
-          {
-            return $row['tag'];
-          }, $rows)) {
-          $tags = array_merge($tags,
-            $tagClass::read($search,
-              array(
-                'sort' => array(
-                  'id' => $search['id']
-                )
-              )));
+        if ($search['id'] = array_map(function ($row)
+        {
+          return $row['tag'];
+        }, $rows)) {
+          $tags = array_merge($tags, $tagClass::read($search, array(
+            'sort' => array(
+              'id' => $search['id']
+            )
+          )));
         }
       }
     }
@@ -1117,14 +1095,10 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 
   protected function createRevisionsTable($table)
   {
-    foreach (explode('##',
-      file_get_contents(
-        __DIR__ . DS . 'MySQL' . DS . 'create-revision-table.sql')) as $sql) {
+    foreach (explode('##', file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-table.sql')) as $sql) {
       $this->query($sql, $table);
     }
-    $this
-      ->query(
-        "INSERT INTO `_rev-$table` SELECT *, NULL, 'INSERT', NOW() FROM `$table`");
+    $this->query("INSERT INTO `_rev-$table` SELECT *, NULL, 'INSERT', NOW() FROM `$table`");
   }
 
   /**
@@ -1137,14 +1111,10 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   protected function createRevisionsTableExt($table, $parent)
   {
     $key = implode('`, `', $this->keys($table));
-    foreach (explode('##',
-      file_get_contents(
-        __DIR__ . DS . 'MySQL' . DS . 'create-revision-table-ext.sql')) as $sql) {
+    foreach (explode('##', file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-table-ext.sql')) as $sql) {
       $this->query($sql, $table, $key, $parent);
     }
-    $this
-      ->query(
-        "INSERT INTO `_rev-$table` SELECT `t`.*, `p`.`_revision` FROM `$table` AS `t` INNER JOIN `$parent` AS `p` ON `t`.`id`=`p`.`id`");
+    $this->query("INSERT INTO `_rev-$table` SELECT `t`.*, `p`.`_revision` FROM `$table` AS `t` INNER JOIN `$parent` AS `p` ON `t`.`id`=`p`.`id`");
   }
 
   protected function createTriggerBeforeInsert($table)
@@ -1165,8 +1135,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $pk = implode(' OR ', $pk);
     }
      */
-    $sql = file_get_contents(
-      __DIR__ . DS . 'MySQL' . DS . 'create-revision-trigger-before-insert.sql');
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-trigger-before-insert.sql');
     $this->query("DROP TRIGGER IF EXISTS `$table-beforeinsert`");
     $this->query("DELMITER //");
     $this->query(sprintf($sql, $table, $declare, $fields, $varFields, $new));
@@ -1191,8 +1160,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $pk = implode(' OR ', $pk);
     }
      */
-    $sql = file_get_contents(
-      __DIR__ . DS . 'MySQL' . DS . 'create-revision-trigger-before-update.sql');
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-trigger-before-update.sql');
     $this->query("DROP TRIGGER IF EXISTS `$table-beforeupdate`");
     $this->query("DELMITER //");
     $this->query(sprintf($sql, $table, $declare, $fields, $varFields, $new));
@@ -1216,8 +1184,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $fields[] = "`$field` = NEW.`$field`";
     }
     $fields = implode(', ', $fields);
-    $sql = file_get_contents(
-      __DIR__ . DS . 'MySQL' . DS . 'create-revision-trigger-after-action.sql');
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-trigger-after-action.sql');
     $this->query("DROP TRIGGER IF EXISTS `$table-after$action`");
     $this->query("DELMITER //");
     $this->query($sql, $table, $action, $fields, $key);
@@ -1227,8 +1194,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   protected function createTriggerAfterDelete($table)
   {
     $pk = implode('`, OLD.`', $this->keys($table));
-    $sql = file_get_contents(
-      __DIR__ . DS . 'MySQL' . DS . 'create-revision-trigger-after-delete.sql');
+    $sql = file_get_contents(__DIR__ . DS . 'MySQL' . DS . 'create-revision-trigger-after-delete.sql');
     $this->query("DROP TRIGGER IF EXISTS `$table-afterdelete`");
     $this->query("DELMITER //");
     $this->query($sql, $table, $pk);
@@ -1241,11 +1207,10 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     if ($class::cfg("attributes.$pwKey.encrypt")) {
       $this->encrypt($password);
     }
-    $model = $this
-      ->first($class,
-        array(
-          $idKey => $id, $pwKey => $password
-        ));
+    $model = $this->first($class, array(
+      $idKey => $id,
+      $pwKey => $password
+    ));
     return $model ? true : false;
   }
 }

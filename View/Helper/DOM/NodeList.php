@@ -37,19 +37,21 @@ class NodeList extends Helper\DOM implements Iterator
   public function __set($name, $value)
   {
     foreach ($this->nodes as $node) {
-      if (is_null($value)) $node->removeAttribute($name);
-      else $node->setAttribute($name, $value);
+      if (is_null($value))
+        $node->removeAttribute($name);
+      else
+        $node->setAttribute($name, $value);
     }
   }
-  
+
   public function __get($name)
   {
     switch ($name) {
-      case 'length':
-        if ($this->nodes instanceof DOMNodeList) {
-          return $this->nodes->length;
-        }
-        return count($this->nodes);
+    case 'length':
+      if ($this->nodes instanceof DOMNodeList) {
+        return $this->nodes->length;
+      }
+      return count($this->nodes);
     }
     return $this->item(0)->$name;
   }

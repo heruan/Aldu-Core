@@ -30,7 +30,8 @@ class Model extends Stub
     __CLASS__ => array(
       'acls' => array(
         'default' => array(
-          'model' => __CLASS__, 'actions' => array(
+          'model' => __CLASS__,
+          'actions' => array(
             'browse'
           )
         )
@@ -38,9 +39,12 @@ class Model extends Stub
       'datasource' => array(
         'urls' => array(
           'default' => array(
-            'scheme' => 'sqlite', 'path' => ALDU_DEFAULT_DATASOURCE
+            'scheme' => 'sqlite',
+            'path' => ALDU_DEFAULT_DATASOURCE
           )
-        ), 'search' => array(), 'options' => array(
+        ),
+        'search' => array(),
+        'options' => array(
           'sort' => array(
             '_' => 1
           )
@@ -48,12 +52,14 @@ class Model extends Stub
         'ldap' => array(
           'openldap' => array(
             'mappings' => array(
-              'created' => 'createTimestamp', 'updated' => 'modifyTimestamp'
+              'created' => 'createTimestamp',
+              'updated' => 'modifyTimestamp'
             )
           ),
           'ad' => array(
             'mappings' => array(
-              'created' => 'whenCreated', 'updated' => 'whenChanged'
+              'created' => 'whenCreated',
+              'updated' => 'whenChanged'
             )
           )
         )
@@ -66,28 +72,44 @@ class Model extends Stub
   protected static $relations = array(
     'has' => array(
       'Aldu\Core\Model' => array(
-        'created' => array('type' => 'datetime'),
+        'created' => array(
+          'type' => 'datetime'
+        ),
         '_' => array(
-          'type' => 'int', 'null' => false, 'default' => 0
+          'type' => 'int',
+          'null' => false,
+          'default' => 0
         )
       )
     )
   );
   protected static $attributes = array(
     'id' => array(
-      'type' => 'int', 'null' => false, 'other' => 'unsigned', 'increment' => 'auto'
-    ), 'acl' => array(
+      'type' => 'int',
+      'null' => false,
+      'other' => 'unsigned',
+      'increment' => 'auto'
+    ),
+    'acl' => array(
       'type' => array(
-        'read', 'edit', 'delete'
-      ), 'default' => array(
+        'read',
+        'edit',
+        'delete'
+      ),
+      'default' => array(
         'read'
       )
-    ), 'created' => array(
+    ),
+    'created' => array(
       'type' => 'datetime'
-    ), 'updated' => array(
+    ),
+    'updated' => array(
       'type' => 'datetime'
-    ), '_' => array(
-      'type' => 'int', 'null' => false, 'default' => 0
+    ),
+    '_' => array(
+      'type' => 'int',
+      'null' => false,
+      'default' => 0
     )
   );
 
@@ -102,7 +124,8 @@ class Model extends Stub
   protected static function configure($configuration = array())
   {
     $class = get_called_class();
-    $configuration['attributes'] = array_map(function($attribute)use($class) {
+    $configuration['attributes'] = array_map(function ($attribute) use ($class)
+    {
       if (isset($attribute['type']) && $attribute['type'] === 'self') {
         $attribute['type'] = $class;
       }
@@ -155,7 +178,7 @@ class Model extends Stub
     array_pop($parts);
     $ns = implode(NS, $parts);
     $Views = array(
-        $ns . NS . 'Views' . NS . $class
+      $ns . NS . 'Views' . NS . $class
     );
     foreach (class_parents($self) as $model) {
       if (isset($model::$View)) {
@@ -216,7 +239,10 @@ class Model extends Stub
     $array = array();
     foreach (get_object_vars($this) as $name => $attribute) {
       if ($safe && $attribute instanceof self) {
-        $attribute = array('class' => get_class($attribute), 'id' => $attribute->id);
+        $attribute = array(
+          'class' => get_class($attribute),
+          'id' => $attribute->id
+        );
       }
       elseif ($attribute instanceof DateTime) {
         $attribute = $attribute->format(ALDU_DATETIME_FORMAT);
@@ -299,10 +325,14 @@ class Model extends Stub
     $args[1] = array_replace_recursive($class::cfg('datasource.search'), $args[1]);
     $args[2] = array_replace_recursive($class::cfg('datasource.options'), $args[2]);
     $return = call_user_func_array(array(
-      static::datasource($function), $function
+      static::datasource($function),
+      $function
     ), $args);
     if (is_array($return)) {
-      return array_filter($return, array(get_called_class(), 'authorize'));
+      return array_filter($return, array(
+        get_called_class(),
+        'authorize'
+      ));
     }
     elseif (is_object($return)) {
       if (!static::authorize($return)) {
@@ -327,11 +357,11 @@ class Model extends Stub
       $name = array_pop($name);
     }
     switch ($inflection) {
-      case 'p':
-      case 'plural':
-      case 'pluralize':
-        $name = Inflector::pluralize($name);
-        break;
+    case 'p':
+    case 'plural':
+    case 'pluralize':
+      $name = Inflector::pluralize($name);
+      break;
     }
     return $locale->t($name);
   }
@@ -378,14 +408,26 @@ class Model extends Stub
     if (!$aro) {
       return false;
     }
-    $belongs = array_merge(array($aro), $aro->belongs());
+    $belongs = array_merge(array(
+      $aro
+    ), $aro->belongs());
     foreach ($belongs as $belongsAro) {
-      if ($this->belongs($belongsAro, array('acl' => array(array($action))))) {
+      if ($this->belongs($belongsAro, array(
+        'acl' => array(
+          array(
+            $action
+          )
+        )
+      ))) {
         return true;
       }
     }
     foreach (static::cfg('acls') as $acl) {
-      extract(array_merge(array('search' => array(), 'options' => array(), 'actions' => array()), $acl), EXTR_PREFIX_ALL, 'acl');
+      extract(array_merge(array(
+        'search' => array(),
+        'options' => array(),
+        'actions' => array()
+      ), $acl), EXTR_PREFIX_ALL, 'acl');
       if ($aro->is($acl_model, $acl_search) && in_array($action, $acl_actions)) {
         return true;
       }
@@ -424,7 +466,10 @@ class Model extends Stub
       $action = 'view';
     }
     extract(array_merge(array(
-      'prefix' => null, 'absolute' => false, 'arguments' => array(), 'render' => null
+      'prefix' => null,
+      'absolute' => false,
+      'arguments' => array(),
+      'render' => null
     ), $_));
     $arguments = array_filter($arguments);
     $R = Router::instance();
@@ -435,7 +480,8 @@ class Model extends Stub
       $action = is_bool($action) ? '' : $action;
       $parts = explode(NS, get_class($this));
       $parts = array_map(array(
-        'Aldu\Core\Utility\Inflector', 'underscore'
+        'Aldu\Core\Utility\Inflector',
+        'underscore'
       ), $parts);
       $class = array_pop($parts);
       array_pop($parts);

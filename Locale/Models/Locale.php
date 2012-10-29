@@ -24,7 +24,11 @@ class Locale extends Core\Locale\Localized
   public $name;
   public $title;
 
-  protected static $configuration = array(__CLASS__ => array('label' => 'title'));
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'label' => 'title'
+    )
+  );
   protected static $extensions = array(
     'localized' => array(
       'attributes' => array(

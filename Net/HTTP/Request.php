@@ -117,54 +117,91 @@ class Request extends Net\HTTP
       'sapi' => 'PHP_SAPI'
     ),
     'escaped' => array(
-      'env' => 'QUERY_STRING', 'pattern' => '/^_escaped/'
-    ), 'get' => array(
-      'env' => 'REQUEST_METHOD', 'value' => 'GET'
+      'env' => 'QUERY_STRING',
+      'pattern' => '/^_escaped/'
+    ),
+    'get' => array(
+      'env' => 'REQUEST_METHOD',
+      'value' => 'GET'
     ),
     'post' => array(
-      'env' => 'REQUEST_METHOD', 'value' => 'POST'
-    ), 'put' => array(
-      'env' => 'REQUEST_METHOD', 'value' => 'PUT'
+      'env' => 'REQUEST_METHOD',
+      'value' => 'POST'
+    ),
+    'put' => array(
+      'env' => 'REQUEST_METHOD',
+      'value' => 'PUT'
     ),
     'delete' => array(
-      'env' => 'REQUEST_METHOD', 'value' => 'DELETE'
+      'env' => 'REQUEST_METHOD',
+      'value' => 'DELETE'
     ),
     'head' => array(
-      'env' => 'REQUEST_METHOD', 'value' => 'HEAD'
+      'env' => 'REQUEST_METHOD',
+      'value' => 'HEAD'
     ),
     'options' => array(
-      'env' => 'REQUEST_METHOD', 'value' => 'OPTIONS'
-    ), 'ssl' => array(
-      'env' => 'HTTPS', 'value' => 1
+      'env' => 'REQUEST_METHOD',
+      'value' => 'OPTIONS'
+    ),
+    'ssl' => array(
+      'env' => 'HTTPS',
+      'value' => 1
     ),
     'ajax' => array(
-      'env' => 'HTTP_X_REQUESTED_WITH', 'value' => 'XMLHttpRequest'
+      'env' => 'HTTP_X_REQUESTED_WITH',
+      'value' => 'XMLHttpRequest'
     ),
     'chromeframe' => array(
-      'env' => 'HTTP_USER_AGENT', 'pattern' => '/chromeframe/'
+      'env' => 'HTTP_USER_AGENT',
+      'pattern' => '/chromeframe/'
     ),
     'ie' => array(
-      'env' => 'HTTP_USER_AGENT', 'pattern' => '/MSIE/'
+      'env' => 'HTTP_USER_AGENT',
+      'pattern' => '/MSIE/'
     ),
     'ie6' => array(
-      'env' => 'HTTP_USER_AGENT', 'pattern' => '/MSIE 6/'
+      'env' => 'HTTP_USER_AGENT',
+      'pattern' => '/MSIE 6/'
     ),
     'ie<8' => array(
-      'env' => 'HTTP_USER_AGENT', 'pattern' => '/MSIE [1-7]/'
+      'env' => 'HTTP_USER_AGENT',
+      'pattern' => '/MSIE [1-7]/'
     ),
     'ie<9' => array(
-      'env' => 'HTTP_USER_AGENT', 'pattern' => '/MSIE [1-8]/'
+      'env' => 'HTTP_USER_AGENT',
+      'pattern' => '/MSIE [1-8]/'
     ),
     'flash' => array(
-      'env' => 'HTTP_USER_AGENT', 'pattern' => '/^(Shockwave|Adobe) Flash/'
+      'env' => 'HTTP_USER_AGENT',
+      'pattern' => '/^(Shockwave|Adobe) Flash/'
     ),
     'mobile' => array(
       'env' => 'HTTP_USER_AGENT',
       'options' => array(
-        'Android', 'AvantGo', 'BlackBerry', 'DoCoMo', 'Fennec', 'iPod',
-        'iPhone', 'iPad', 'J2ME', 'MIDP', 'NetFront', 'Nokia', 'Opera Mini',
-        'PalmOS', 'PalmSource', 'portalmmm', 'Plucker', 'ReqwirelessWeb',
-        'SonyEricsson', 'Symbian', 'UP\\.Browser', 'webOS', 'Windows CE',
+        'Android',
+        'AvantGo',
+        'BlackBerry',
+        'DoCoMo',
+        'Fennec',
+        'iPod',
+        'iPhone',
+        'iPad',
+        'J2ME',
+        'MIDP',
+        'NetFront',
+        'Nokia',
+        'Opera Mini',
+        'PalmOS',
+        'PalmSource',
+        'portalmmm',
+        'Plucker',
+        'ReqwirelessWeb',
+        'SonyEricsson',
+        'Symbian',
+        'UP\\.Browser',
+        'webOS',
+        'Windows CE',
         'Xiino'
       )
     )
@@ -180,9 +217,13 @@ class Request extends Net\HTTP
       $network = array(
         'scheme' => 'cli',
         'server' => array(
-          'ip' => null, 'port' => null, 'name' => null
-        ), 'client' => array(
-          'ip' => null, 'port' => null
+          'ip' => null,
+          'port' => null,
+          'name' => null
+        ),
+        'client' => array(
+          'ip' => null,
+          'port' => null
         )
       );
       $headers = array();
@@ -229,13 +270,11 @@ class Request extends Net\HTTP
       $files = static::env('FILES');
       $body = file_get_contents('php://input');
     }
-    return new Request($resource, $method, $protocol, $network, $headers,
-      $body, $get, $post, $files);
+    return new Request($resource, $method, $protocol, $network, $headers, $body, $get, $post, $files);
   }
 
-  public function __construct($resource = '/', $method = 'GET',
-    $protocol = 'HTTP/1.1', $network = array(), $headers = array(),
-    $body = null, $get = array(), $post = array(), $files = array())
+  public function __construct($resource = '/', $method = 'GET', $protocol = 'HTTP/1.1', $network = array(),
+    $headers = array(), $body = null, $get = array(), $post = array(), $files = array())
   {
     parent::__construct();
     $this->sapi = PHP_SAPI;
@@ -284,8 +323,7 @@ class Request extends Net\HTTP
     if ($full) {
       $base = $this->scheme . '://';
       $base .= $this->host;
-      $base .= ($this->port != 80 && $this->port != 443) ? ':' . $this->port
-        : '';
+      $base .= ($this->port != 80 && $this->port != 443) ? ':' . $this->port : '';
       $base .= $this->_base($resource);
     }
     else {
@@ -349,8 +387,7 @@ class Request extends Net\HTTP
   protected function _ip($safe = true)
   {
     if (!$safe && static::env('HTTP_X_FORWARDED_FOR') != null) {
-      $ipaddr = preg_replace('/(?:,.*)/', '',
-        static::env('HTTP_X_FORWARDED_FOR'));
+      $ipaddr = preg_replace('/(?:,.*)/', '', static::env('HTTP_X_FORWARDED_FOR'));
     }
     else {
       if (static::env('HTTP_CLIENT_IP') != null) {
@@ -374,7 +411,10 @@ class Request extends Net\HTTP
   protected function _id()
   {
     $id = array(
-      $this->method, $this->agent, $this->host, $this->path
+      $this->method,
+      $this->agent,
+      $this->host,
+      $this->path
     );
     return md5(implode('::', $id));
   }
@@ -448,14 +488,12 @@ class Request extends Net\HTTP
 
   public function query($key = null)
   {
-    return $key ? (isset($this->query[$key]) ? $this->query[$key] : array())
-      : $this->query;
+    return $key ? (isset($this->query[$key]) ? $this->query[$key] : array()) : $this->query;
   }
 
   public function data($key = null)
   {
-    return $key ? (isset($this->data[$key]) ? $this->data[$key] : array())
-      : $this->data;
+    return $key ? (isset($this->data[$key]) ? $this->data[$key] : array()) : $this->data;
   }
 
   public function header($header = null)

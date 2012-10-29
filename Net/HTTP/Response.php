@@ -23,130 +23,269 @@ use Aldu\Core\Net;
 class Response extends Net\HTTP
 {
   protected $_statusCodes = array(
-    100 => "Continue", 101 => "Switching Protocols", 102 => "Processing",
-    122 => "Request-URI too long", 200 => "OK", 201 => "Created",
-    202 => "Accepted", 203 => "Non-Authoritative Information",
-    204 => "No Content", 205 => "Reset Content", 206 => "Partial Content",
-    207 => "Multi-Status", 226 => "IM Used", 300 => "Multiple Choices",
-    301 => "Moved Permanently", 302 => "Found", 303 => "See Other",
-    304 => "Not Modified", 305 => "Use Proxy", 306 => "Switch Proxy",
-    307 => "Temporary Redirect", 400 => "Bad Request", 401 => "Unauthorized",
-    402 => "Payment Required", 403 => "Forbidden", 404 => "Not Found",
-    405 => "Method Not Allowed", 406 => "Not Acceptable",
-    407 => "Proxy Authentication Required", 408 => "Request Timeout",
-    409 => "Conflict", 410 => "Gone", 411 => "Length Required",
-    412 => "Precondition Failed", 413 => "Request Controller Too Large",
-    414 => "Request-URI Too Long", 415 => "Unsupported Media Type",
-    416 => "Requested Range Not Satisfiable", 417 => "Expectation Failed",
-    418 => "I'm a teapot", 422 => "Unprocessable Controller", 423 => "Locked",
-    424 => "Failed Dependency", 425 => "Unordered Collection",
-    426 => "Upgrade Required", 500 => "Internal Server Error",
-    501 => "Not Implemented", 502 => "Bad Gateway",
-    503 => "Service Unavailable", 504 => "Gateway Timeout",
-    505 => "HTTP Version Not Supported", 506 => "Variant Also Negotiates",
-    507 => "Insufficient Storage", 509 => "Bandwidth Limit Exceeded",
+    100 => "Continue",
+    101 => "Switching Protocols",
+    102 => "Processing",
+    122 => "Request-URI too long",
+    200 => "OK",
+    201 => "Created",
+    202 => "Accepted",
+    203 => "Non-Authoritative Information",
+    204 => "No Content",
+    205 => "Reset Content",
+    206 => "Partial Content",
+    207 => "Multi-Status",
+    226 => "IM Used",
+    300 => "Multiple Choices",
+    301 => "Moved Permanently",
+    302 => "Found",
+    303 => "See Other",
+    304 => "Not Modified",
+    305 => "Use Proxy",
+    306 => "Switch Proxy",
+    307 => "Temporary Redirect",
+    400 => "Bad Request",
+    401 => "Unauthorized",
+    402 => "Payment Required",
+    403 => "Forbidden",
+    404 => "Not Found",
+    405 => "Method Not Allowed",
+    406 => "Not Acceptable",
+    407 => "Proxy Authentication Required",
+    408 => "Request Timeout",
+    409 => "Conflict",
+    410 => "Gone",
+    411 => "Length Required",
+    412 => "Precondition Failed",
+    413 => "Request Controller Too Large",
+    414 => "Request-URI Too Long",
+    415 => "Unsupported Media Type",
+    416 => "Requested Range Not Satisfiable",
+    417 => "Expectation Failed",
+    418 => "I'm a teapot",
+    422 => "Unprocessable Controller",
+    423 => "Locked",
+    424 => "Failed Dependency",
+    425 => "Unordered Collection",
+    426 => "Upgrade Required",
+    500 => "Internal Server Error",
+    501 => "Not Implemented",
+    502 => "Bad Gateway",
+    503 => "Service Unavailable",
+    504 => "Gateway Timeout",
+    505 => "HTTP Version Not Supported",
+    506 => "Variant Also Negotiates",
+    507 => "Insufficient Storage",
+    509 => "Bandwidth Limit Exceeded",
     510 => "Not Extended"
   );
 
   protected $_mimeTypes = array(
-    'ai' => 'application/postscript', 'bcpio' => 'application/x-bcpio',
-    'bin' => 'application/octet-stream', 'ccad' => 'application/clariscad',
-    'cdf' => 'application/x-netcdf', 'class' => 'application/octet-stream',
-    'cpio' => 'application/x-cpio', 'cpt' => 'application/mac-compactpro',
+    'ai' => 'application/postscript',
+    'bcpio' => 'application/x-bcpio',
+    'bin' => 'application/octet-stream',
+    'ccad' => 'application/clariscad',
+    'cdf' => 'application/x-netcdf',
+    'class' => 'application/octet-stream',
+    'cpio' => 'application/x-cpio',
+    'cpt' => 'application/mac-compactpro',
     'csh' => 'application/x-csh',
     'csv' => array(
-      'text/csv', 'application/vnd.ms-excel', 'text/plain'
-    ), 'dcr' => 'application/x-director', 'dir' => 'application/x-director',
-    'dms' => 'application/octet-stream', 'doc' => 'application/msword',
-    'drw' => 'application/drafting', 'dvi' => 'application/x-dvi',
-    'dwg' => 'application/acad', 'dxf' => 'application/dxf',
+      'text/csv',
+      'application/vnd.ms-excel',
+      'text/plain'
+    ),
+    'dcr' => 'application/x-director',
+    'dir' => 'application/x-director',
+    'dms' => 'application/octet-stream',
+    'doc' => 'application/msword',
+    'drw' => 'application/drafting',
+    'dvi' => 'application/x-dvi',
+    'dwg' => 'application/acad',
+    'dxf' => 'application/dxf',
     'dxr' => 'application/x-director',
     'eot' => 'application/vnd.ms-fontobject',
-    'eps' => 'application/postscript', 'exe' => 'application/octet-stream',
-    'ez' => 'application/andrew-inset', 'flv' => 'video/x-flv',
-    'gtar' => 'application/x-gtar', 'gz' => 'application/x-gzip',
-    'bz2' => 'application/x-bzip', '7z' => 'application/x-7z-compressed',
-    'hdf' => 'application/x-hdf', 'hqx' => 'application/mac-binhex40',
-    'ico' => 'image/vnd.microsoft.icon', 'ips' => 'application/x-ipscript',
-    'ipx' => 'application/x-ipix', 'js' => 'text/javascript',
-    'latex' => 'application/x-latex', 'lha' => 'application/octet-stream',
-    'lsp' => 'application/x-lisp', 'lzh' => 'application/octet-stream',
-    'man' => 'application/x-troff-man', 'me' => 'application/x-troff-me',
-    'mif' => 'application/vnd.mif', 'ms' => 'application/x-troff-ms',
-    'nc' => 'application/x-netcdf', 'oda' => 'application/oda',
-    'otf' => 'font/otf', 'pdf' => 'application/pdf',
-    'pgn' => 'application/x-chess-pgn', 'pot' => 'application/mspowerpoint',
-    'pps' => 'application/mspowerpoint', 'ppt' => 'application/mspowerpoint',
-    'ppz' => 'application/mspowerpoint', 'pre' => 'application/x-freelance',
-    'prt' => 'application/pro_eng', 'ps' => 'application/postscript',
-    'roff' => 'application/x-troff', 'scm' => 'application/x-lotusscreencam',
-    'set' => 'application/set', 'sh' => 'application/x-sh',
-    'shar' => 'application/x-shar', 'sit' => 'application/x-stuffit',
-    'skd' => 'application/x-koan', 'skm' => 'application/x-koan',
-    'skp' => 'application/x-koan', 'skt' => 'application/x-koan',
-    'smi' => 'application/smil', 'smil' => 'application/smil',
-    'sol' => 'application/solids', 'spl' => 'application/x-futuresplash',
-    'src' => 'application/x-wais-source', 'step' => 'application/STEP',
-    'stl' => 'application/SLA', 'stp' => 'application/STEP',
-    'sv4cpio' => 'application/x-sv4cpio', 'sv4crc' => 'application/x-sv4crc',
-    'svg' => 'image/svg+xml', 'svgz' => 'image/svg+xml',
-    'swf' => 'application/x-shockwave-flash', 't' => 'application/x-troff',
-    'tar' => 'application/x-tar', 'tcl' => 'application/x-tcl',
-    'tex' => 'application/x-tex', 'texi' => 'application/x-texinfo',
-    'texinfo' => 'application/x-texinfo', 'tr' => 'application/x-troff',
-    'tsp' => 'application/dsptype', 'ttf' => 'font/ttf',
-    'unv' => 'application/i-deas', 'ustar' => 'application/x-ustar',
-    'vcd' => 'application/x-cdlink', 'vda' => 'application/vda',
-    'xlc' => 'application/vnd.ms-excel', 'xll' => 'application/vnd.ms-excel',
-    'xlm' => 'application/vnd.ms-excel', 'xls' => 'application/vnd.ms-excel',
-    'xlw' => 'application/vnd.ms-excel', 'zip' => 'application/zip',
-    'aif' => 'audio/x-aiff', 'aifc' => 'audio/x-aiff',
-    'aiff' => 'audio/x-aiff', 'au' => 'audio/basic', 'kar' => 'audio/midi',
-    'mid' => 'audio/midi', 'midi' => 'audio/midi', 'mp2' => 'audio/mpeg',
-    'mp3' => 'audio/mpeg', 'mpga' => 'audio/mpeg', 'ra' => 'audio/x-realaudio',
-    'ram' => 'audio/x-pn-realaudio', 'rm' => 'audio/x-pn-realaudio',
-    'rpm' => 'audio/x-pn-realaudio-plugin', 'snd' => 'audio/basic',
-    'tsi' => 'audio/TSP-audio', 'wav' => 'audio/x-wav', 'asc' => 'text/plain',
-    'c' => 'text/plain', 'cc' => 'text/plain', 'css' => 'text/css',
-    'etx' => 'text/x-setext', 'f' => 'text/plain', 'f90' => 'text/plain',
-    'h' => 'text/plain', 'hh' => 'text/plain',
+    'eps' => 'application/postscript',
+    'exe' => 'application/octet-stream',
+    'ez' => 'application/andrew-inset',
+    'flv' => 'video/x-flv',
+    'gtar' => 'application/x-gtar',
+    'gz' => 'application/x-gzip',
+    'bz2' => 'application/x-bzip',
+    '7z' => 'application/x-7z-compressed',
+    'hdf' => 'application/x-hdf',
+    'hqx' => 'application/mac-binhex40',
+    'ico' => 'image/vnd.microsoft.icon',
+    'ips' => 'application/x-ipscript',
+    'ipx' => 'application/x-ipix',
+    'js' => 'text/javascript',
+    'latex' => 'application/x-latex',
+    'lha' => 'application/octet-stream',
+    'lsp' => 'application/x-lisp',
+    'lzh' => 'application/octet-stream',
+    'man' => 'application/x-troff-man',
+    'me' => 'application/x-troff-me',
+    'mif' => 'application/vnd.mif',
+    'ms' => 'application/x-troff-ms',
+    'nc' => 'application/x-netcdf',
+    'oda' => 'application/oda',
+    'otf' => 'font/otf',
+    'pdf' => 'application/pdf',
+    'pgn' => 'application/x-chess-pgn',
+    'pot' => 'application/mspowerpoint',
+    'pps' => 'application/mspowerpoint',
+    'ppt' => 'application/mspowerpoint',
+    'ppz' => 'application/mspowerpoint',
+    'pre' => 'application/x-freelance',
+    'prt' => 'application/pro_eng',
+    'ps' => 'application/postscript',
+    'roff' => 'application/x-troff',
+    'scm' => 'application/x-lotusscreencam',
+    'set' => 'application/set',
+    'sh' => 'application/x-sh',
+    'shar' => 'application/x-shar',
+    'sit' => 'application/x-stuffit',
+    'skd' => 'application/x-koan',
+    'skm' => 'application/x-koan',
+    'skp' => 'application/x-koan',
+    'skt' => 'application/x-koan',
+    'smi' => 'application/smil',
+    'smil' => 'application/smil',
+    'sol' => 'application/solids',
+    'spl' => 'application/x-futuresplash',
+    'src' => 'application/x-wais-source',
+    'step' => 'application/STEP',
+    'stl' => 'application/SLA',
+    'stp' => 'application/STEP',
+    'sv4cpio' => 'application/x-sv4cpio',
+    'sv4crc' => 'application/x-sv4crc',
+    'svg' => 'image/svg+xml',
+    'svgz' => 'image/svg+xml',
+    'swf' => 'application/x-shockwave-flash',
+    't' => 'application/x-troff',
+    'tar' => 'application/x-tar',
+    'tcl' => 'application/x-tcl',
+    'tex' => 'application/x-tex',
+    'texi' => 'application/x-texinfo',
+    'texinfo' => 'application/x-texinfo',
+    'tr' => 'application/x-troff',
+    'tsp' => 'application/dsptype',
+    'ttf' => 'font/ttf',
+    'unv' => 'application/i-deas',
+    'ustar' => 'application/x-ustar',
+    'vcd' => 'application/x-cdlink',
+    'vda' => 'application/vda',
+    'xlc' => 'application/vnd.ms-excel',
+    'xll' => 'application/vnd.ms-excel',
+    'xlm' => 'application/vnd.ms-excel',
+    'xls' => 'application/vnd.ms-excel',
+    'xlw' => 'application/vnd.ms-excel',
+    'zip' => 'application/zip',
+    'aif' => 'audio/x-aiff',
+    'aifc' => 'audio/x-aiff',
+    'aiff' => 'audio/x-aiff',
+    'au' => 'audio/basic',
+    'kar' => 'audio/midi',
+    'mid' => 'audio/midi',
+    'midi' => 'audio/midi',
+    'mp2' => 'audio/mpeg',
+    'mp3' => 'audio/mpeg',
+    'mpga' => 'audio/mpeg',
+    'ra' => 'audio/x-realaudio',
+    'ram' => 'audio/x-pn-realaudio',
+    'rm' => 'audio/x-pn-realaudio',
+    'rpm' => 'audio/x-pn-realaudio-plugin',
+    'snd' => 'audio/basic',
+    'tsi' => 'audio/TSP-audio',
+    'wav' => 'audio/x-wav',
+    'asc' => 'text/plain',
+    'c' => 'text/plain',
+    'cc' => 'text/plain',
+    'css' => 'text/css',
+    'etx' => 'text/x-setext',
+    'f' => 'text/plain',
+    'f90' => 'text/plain',
+    'h' => 'text/plain',
+    'hh' => 'text/plain',
     'html' => array(
-      'text/html', '*/*'
-    ), 'htm' => array(
-      'text/html', '*/*'
-    ), 'm' => 'text/plain', 'rtf' => 'text/rtf', 'rtx' => 'text/richtext',
-    'sgm' => 'text/sgml', 'sgml' => 'text/sgml',
-    'tsv' => 'text/tab-separated-values', 'tpl' => 'text/template',
-    'txt' => 'text/plain', 'text' => 'text/plain',
+      'text/html',
+      '*/*'
+    ),
+    'htm' => array(
+      'text/html',
+      '*/*'
+    ),
+    'm' => 'text/plain',
+    'rtf' => 'text/rtf',
+    'rtx' => 'text/richtext',
+    'sgm' => 'text/sgml',
+    'sgml' => 'text/sgml',
+    'tsv' => 'text/tab-separated-values',
+    'tpl' => 'text/template',
+    'txt' => 'text/plain',
+    'text' => 'text/plain',
     'xml' => array(
-      'application/xml', 'text/xml'
-    ), 'avi' => 'video/x-msvideo', 'fli' => 'video/x-fli',
-    'mov' => 'video/quicktime', 'movie' => 'video/x-sgi-movie',
-    'mpe' => 'video/mpeg', 'mpeg' => 'video/mpeg', 'mpg' => 'video/mpeg',
-    'qt' => 'video/quicktime', 'viv' => 'video/vnd.vivo',
-    'vivo' => 'video/vnd.vivo', 'gif' => 'image/gif', 'ief' => 'image/ief',
-    'jpe' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'jpg' => 'image/jpeg',
-    'pbm' => 'image/x-portable-bitmap', 'pgm' => 'image/x-portable-graymap',
-    'png' => 'image/png', 'pnm' => 'image/x-portable-anymap',
-    'ppm' => 'image/x-portable-pixmap', 'ras' => 'image/cmu-raster',
-    'rgb' => 'image/x-rgb', 'tif' => 'image/tiff', 'tiff' => 'image/tiff',
-    'xbm' => 'image/x-xbitmap', 'xpm' => 'image/x-xpixmap',
-    'xwd' => 'image/x-xwindowdump', 'ice' => 'x-conference/x-cooltalk',
-    'iges' => 'model/iges', 'igs' => 'model/iges', 'mesh' => 'model/mesh',
-    'msh' => 'model/mesh', 'silo' => 'model/mesh', 'vrml' => 'model/vrml',
-    'wrl' => 'model/vrml', 'mime' => 'www/mime', 'pdb' => 'chemical/x-pdb',
-    'xyz' => 'chemical/x-pdb', 'javascript' => 'text/javascript',
+      'application/xml',
+      'text/xml'
+    ),
+    'avi' => 'video/x-msvideo',
+    'fli' => 'video/x-fli',
+    'mov' => 'video/quicktime',
+    'movie' => 'video/x-sgi-movie',
+    'mpe' => 'video/mpeg',
+    'mpeg' => 'video/mpeg',
+    'mpg' => 'video/mpeg',
+    'qt' => 'video/quicktime',
+    'viv' => 'video/vnd.vivo',
+    'vivo' => 'video/vnd.vivo',
+    'gif' => 'image/gif',
+    'ief' => 'image/ief',
+    'jpe' => 'image/jpeg',
+    'jpeg' => 'image/jpeg',
+    'jpg' => 'image/jpeg',
+    'pbm' => 'image/x-portable-bitmap',
+    'pgm' => 'image/x-portable-graymap',
+    'png' => 'image/png',
+    'pnm' => 'image/x-portable-anymap',
+    'ppm' => 'image/x-portable-pixmap',
+    'ras' => 'image/cmu-raster',
+    'rgb' => 'image/x-rgb',
+    'tif' => 'image/tiff',
+    'tiff' => 'image/tiff',
+    'xbm' => 'image/x-xbitmap',
+    'xpm' => 'image/x-xpixmap',
+    'xwd' => 'image/x-xwindowdump',
+    'ice' => 'x-conference/x-cooltalk',
+    'iges' => 'model/iges',
+    'igs' => 'model/iges',
+    'mesh' => 'model/mesh',
+    'msh' => 'model/mesh',
+    'silo' => 'model/mesh',
+    'vrml' => 'model/vrml',
+    'wrl' => 'model/vrml',
+    'mime' => 'www/mime',
+    'pdb' => 'chemical/x-pdb',
+    'xyz' => 'chemical/x-pdb',
+    'javascript' => 'text/javascript',
     'json' => 'application/json',
     'form' => 'application/x-www-form-urlencoded',
     'file' => 'multipart/form-data',
     'xhtml' => array(
-      'application/xhtml+xml', 'application/xhtml', 'text/xhtml'
-    ), 'xhtml-mobile' => 'application/vnd.wap.xhtml+xml',
-    'rss' => 'application/rss+xml', 'atom' => 'application/atom+xml',
+      'application/xhtml+xml',
+      'application/xhtml',
+      'text/xhtml'
+    ),
+    'xhtml-mobile' => 'application/vnd.wap.xhtml+xml',
+    'rss' => 'application/rss+xml',
+    'atom' => 'application/atom+xml',
     'amf' => 'application/x-amf',
     'wap' => array(
-      'text/vnd.wap.wml', 'text/vnd.wap.wmlscript', 'image/vnd.wap.wbmp'
-    ), 'wml' => 'text/vnd.wap.wml', 'wmlscript' => 'text/vnd.wap.wmlscript',
+      'text/vnd.wap.wml',
+      'text/vnd.wap.wmlscript',
+      'image/vnd.wap.wbmp'
+    ),
+    'wml' => 'text/vnd.wap.wml',
+    'wmlscript' => 'text/vnd.wap.wmlscript',
     'wbmp' => 'image/vnd.wap.wbmp'
   );
 
@@ -229,19 +368,21 @@ class Response extends Net\HTTP
 
   protected function setRange($range, $filesize, &$first, &$last)
   {
-    list($first, $last) = explode('-', $range)
-      + array(
-        '', ''
+    list($first, $last) = explode('-', $range) + array(
+        '',
+        ''
       );
     if ($first == '') {
       // Suffix byte range: gets last n bytes
       $suffix = $last;
       $last = $filesize - 1;
       $first = $filesize - $suffix;
-      if ($first < 0) $first = 0;
+      if ($first < 0)
+        $first = 0;
     }
     else {
-      if ($last == '' || $last > $filesize - 1) $last = $filesize - 1;
+      if ($last == '' || $last > $filesize - 1)
+        $last = $filesize - 1;
     }
     if ($first > $last) {
       // Unsatisfiable range
@@ -272,8 +413,7 @@ class Response extends Net\HTTP
           }
           $length += strlen("\r\n--$boundary\r\n");
           $length += strlen("Content-Type: {$this->_contentType}\r\n");
-          $length += strlen(
-            "Content-Range: $accept $first-$last/$total\r\n\r\n");
+          $length += strlen("Content-Range: $accept $first-$last/$total\r\n\r\n");
           $length += $last - $first + 1;
         }
         $length += strlen("\r\n--$boundary--\r\n");
@@ -341,9 +481,7 @@ class Response extends Net\HTTP
 
       $codeMessage = $this->_statusCodes[$this->_status];
       $this->_sendHeader("{$this->_protocol} {$this->_status} {$codeMessage}");
-      $this
-        ->_sendHeader('Content-Type',
-          "{$this->_contentType}; charset={$this->_charset}");
+      $this->_sendHeader('Content-Type', "{$this->_contentType}; charset={$this->_charset}");
 
       foreach ($this->_headers as $header => $value) {
         $this->_sendHeader($header, $value);
@@ -618,8 +756,7 @@ class Response extends Net\HTTP
     }
     if (isset($this->_mimeTypes[$contentType])) {
       $contentType = $this->_mimeTypes[$contentType];
-      $contentType = is_array($contentType) ? current($contentType)
-        : $contentType;
+      $contentType = is_array($contentType) ? current($contentType) : $contentType;
     }
     if (strpos($contentType, '/') === false) {
       return false;
@@ -657,7 +794,8 @@ class Response extends Net\HTTP
   {
     if (is_array($ctype)) {
       return array_map(array(
-        $this, 'mapType'
+        $this,
+        'mapType'
       ), $ctype);
     }
 
@@ -696,14 +834,12 @@ class Response extends Net\HTTP
 
   public function disableCache()
   {
-    $this
-      ->header(
-        array(
-          'Expires' => 'Mon, 26 Jul 1997 05:00:00 GMT',
-          'Last-Modified' => gmdate("D, d M Y H:i:s") . " GMT",
-          'Cache-Control' => 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0',
-          'Pragma' => 'no-cache'
-        ));
+    $this->header(array(
+      'Expires' => 'Mon, 26 Jul 1997 05:00:00 GMT',
+      'Last-Modified' => gmdate("D, d M Y H:i:s") . " GMT",
+      'Cache-Control' => 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0',
+      'Pragma' => 'no-cache'
+    ));
   }
 
   /**
@@ -724,17 +860,15 @@ class Response extends Net\HTTP
     }
     $since = $since ? $since : time();
     $etag = '"' . md5($this->_body) . '"';
-    $this
-      ->header(
-        array(
-          'Date' => gmdate("D, j M Y G:i:s ", time()) . 'GMT',
-          'Last-Modified' => gmdate("D, j M Y G:i:s ", $since) . 'GMT',
-          'Expires' => gmdate("D, j M Y H:i:s", $time) . " GMT",
-          'Cache-Control' => 'public, max-age=' . ($time - time()),
-          'Pragma' => 'cache', 'ETag' => $etag
-        ));
-    if ($this->request->header('If-Modified-Since')
-      == $this->_headers['Last-Modified']
+    $this->header(array(
+      'Date' => gmdate("D, j M Y G:i:s ", time()) . 'GMT',
+      'Last-Modified' => gmdate("D, j M Y G:i:s ", $since) . 'GMT',
+      'Expires' => gmdate("D, j M Y H:i:s", $time) . " GMT",
+      'Cache-Control' => 'public, max-age=' . ($time - time()),
+      'Pragma' => 'cache',
+      'ETag' => $etag
+    ));
+    if ($this->request->header('If-Modified-Since') == $this->_headers['Last-Modified']
       || $this->request->header('If-None-Match') == $etag) {
       $this->status(304);
     }
@@ -749,8 +883,7 @@ class Response extends Net\HTTP
 
   public function compress()
   {
-    $compressionEnabled = ini_get("zlib.output_compression") !== '1'
-      && extension_loaded("zlib")
+    $compressionEnabled = ini_get("zlib.output_compression") !== '1' && extension_loaded("zlib")
       && (strpos(static::env('HTTP_ACCEPT_ENCODING'), 'gzip') !== false);
     return $compressionEnabled && ob_start('ob_gzhandler');
   }
@@ -764,15 +897,12 @@ class Response extends Net\HTTP
 
   public function download($filename)
   {
-    $this
-      ->header('Content-Disposition',
-        'attachment; filename="' . $filename . '"');
+    $this->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
   }
 
   public function inline($filename)
   {
-    $this->header('Content-Disposition',
-        'inline; filename="' . $filename . '"');
+    $this->header('Content-Disposition', 'inline; filename="' . $filename . '"');
   }
 
   /**

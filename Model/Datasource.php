@@ -35,8 +35,8 @@ class Datasource extends Core\Stub
     }
     else {
       $parts = array_merge(array(
-          'scheme' => null
-        ), parse_url($url));
+        'scheme' => null
+      ), parse_url($url));
     }
     if (!isset(static::$drivers[$url])) {
       $scheme = $parts['scheme'];
@@ -80,8 +80,7 @@ class Datasource extends Core\Stub
     ));
     $this->cache->delete($cache);
     foreach ($class::cfg('attributes') as $attribute => $type) {
-      if (is_null($model->$attribute) && isset($type['null'])
-        && !$type['null'] && isset($type['default'])) {
+      if (is_null($model->$attribute) && isset($type['null']) && !$type['null'] && isset($type['default'])) {
         $model->$attribute = $type['default'];
       }
     }
@@ -90,10 +89,14 @@ class Datasource extends Core\Stub
 
   public function count($class, $search = array(), $options = array())
   {
-    $cache = implode('::',
-      array(
-        $class, __METHOD__, md5(serialize(array($search, $options)))
-      ));
+    $cache = implode('::', array(
+      $class,
+      __METHOD__,
+      md5(serialize(array(
+        $search,
+        $options
+      )))
+    ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
       $result = $this->driver->count($class, $search, $options);
       $this->cache->store($cache, $result);
@@ -112,10 +115,14 @@ class Datasource extends Core\Stub
 
   public function first($class, $search = array(), $options = array())
   {
-    $cache = implode('::',
-      array(
-        $class, __METHOD__, md5(serialize(array($search, $options)))
-      ));
+    $cache = implode('::', array(
+      $class,
+      __METHOD__,
+      md5(serialize(array(
+        $search,
+        $options
+      )))
+    ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
       $result = $this->driver->first($class, $search, $options);
       $this->cache->store($cache, $result);
@@ -125,10 +132,14 @@ class Datasource extends Core\Stub
 
   public function read($class, $search = array(), $options = array())
   {
-    $cache = implode('::',
-      array(
-        $class, __METHOD__, md5(serialize(array($search, $options)))
-      ));
+    $cache = implode('::', array(
+      $class,
+      __METHOD__,
+      md5(serialize(array(
+        $search,
+        $options
+      )))
+    ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
       $result = $this->driver->read($class, $search, $options);
       $this->cache->store($cache, $result);
@@ -167,7 +178,8 @@ class Datasource extends Core\Stub
     }
     $class = get_class($model);
     $cache = implode('::', array(
-      $class, 'tags'
+      $class,
+      'tags'
     ));
     $this->cache->delete($cache);
     return $this->driver->tag($model, $tags, $relation);
@@ -176,7 +188,9 @@ class Datasource extends Core\Stub
   public function untag($model, $tags = array())
   {
     if (!is_array($tags)) {
-      $tags = array($tags);
+      $tags = array(
+        $tags
+      );
     }
     if (!$model->id) {
       return true;
@@ -184,20 +198,21 @@ class Datasource extends Core\Stub
     $class = get_class($model);
     $cache = implode('::', array(
       $class,
-    	'tags'
+      'tags'
     ));
     $this->cache->delete($cache);
     return $this->driver->untag($model, $tags);
   }
 
-  public function has($model, $tag = null, $relation = array(),
-    $search = array(), $options = array())
+  public function has($model, $tag = null, $relation = array(), $search = array(), $options = array())
   {
     $class = get_class($model);
-    $cache = implode('::',
-      array(
-        $class, 'tags', __METHOD__, md5(serialize(func_get_args()))
-      ));
+    $cache = implode('::', array(
+      $class,
+      'tags',
+      __METHOD__,
+      md5(serialize(func_get_args()))
+    ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
       $result = $this->driver->has($model, $tag, $relation, $search, $options);
       $this->cache->store($cache, $result);
@@ -205,14 +220,15 @@ class Datasource extends Core\Stub
     return $result;
   }
 
-  public function belongs($tag, $model = null, $relation = array(),
-    $search = array(), $options = array())
+  public function belongs($tag, $model = null, $relation = array(), $search = array(), $options = array())
   {
     $class = is_object($model) ? get_class($model) : $model;
-    $cache = implode('::',
-      array(
-        $class, 'tags', __METHOD__, md5(serialize(func_get_args()))
-      ));
+    $cache = implode('::', array(
+      $class,
+      'tags',
+      __METHOD__,
+      md5(serialize(func_get_args()))
+    ));
     if (ALDU_CACHE_FAILURE === ($result = $this->cache->fetch($cache))) {
       $result = $this->driver->belongs($tag, $model, $relation, $search, $options);
       $this->cache->store($cache, $result);
@@ -225,8 +241,8 @@ class Datasource extends Core\Stub
     if (is_object($class)) {
       $class = get_class($class);
     }
-    $idKey = $class::cfg('datasource.authentication.id') ?: 'name';
-    $pwKey = $class::cfg('datasource.authentication.password') ?: 'password';
+    $idKey = $class::cfg('datasource.authentication.id') ? : 'name';
+    $pwKey = $class::cfg('datasource.authentication.password') ? : 'password';
     if ($prepend = $class::cfg('datasource.authentication.prepend')) {
       if (!strpos($id, $prepend['separator'])) {
         $id = $prepend['string'] . $prepend['separator'] . $id;

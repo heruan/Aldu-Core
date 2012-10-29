@@ -22,5 +22,5 @@ use Aldu\Core\View;
 
 class DOM extends View\Helper
 {
-  
+
 }

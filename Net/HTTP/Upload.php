@@ -25,17 +25,17 @@ class Upload extends Net\HTTP
   public function maxUploadSize($unit = 'b')
   {
     $max = min(array(
-        $this->bytes(ini_get('upload_max_filesize')),
-        $this->bytes(ini_get('post_max_size')),
-        $this->bytes(ini_get('memory_limit'))
+      $this->bytes(ini_get('upload_max_filesize')),
+      $this->bytes(ini_get('post_max_size')),
+      $this->bytes(ini_get('memory_limit'))
     ));
     switch ($unit) {
-      case 'm':
-        return $max / (1024 * 1024);
-      case 'k':
-        return $max / 1024;
-      default:
-        return $max;
+    case 'm':
+      return $max / (1024 * 1024);
+    case 'k':
+      return $max / 1024;
+    default:
+      return $max;
     }
   }
 

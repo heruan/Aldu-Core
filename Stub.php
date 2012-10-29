@@ -96,13 +96,11 @@ abstract class Stub
         $config = array_replace_recursive($config, static::$configuration[$self]);
       }
       if (is_dir(ALDU_CONFIG_DIR)) {
-        if (ALDU_CACHE_FAILURE
-          === ($_config = self::_cache(__CLASS__, __FUNCTION__))) {
+        if (ALDU_CACHE_FAILURE === ($_config = self::_cache(__CLASS__, __FUNCTION__))) {
           $ini = '';
           foreach (scandir(ALDU_CONFIG_DIR) as $filename) {
             if (preg_match('/\.ini$/', $filename)) {
-              $ini .= file_get_contents(ALDU_CONFIG_DIR . DS . $filename)
-                . "\n";
+              $ini .= file_get_contents(ALDU_CONFIG_DIR . DS . $filename) . "\n";
             }
           }
           $_config = Utility\Parser\Ini::parse($ini, true);
@@ -115,9 +113,7 @@ abstract class Stub
       self::$_configurations[$self] = $config;
     }
     if ($config) {
-      self::$_configurations[$self] = array_replace_recursive(
-        self::$_configurations[$self], $config
-      );
+      self::$_configurations[$self] = array_replace_recursive(self::$_configurations[$self], $config);
     }
     return self::$_configurations[$self];
   }
@@ -135,19 +131,15 @@ abstract class Stub
     $self = get_called_class();
     $self::configure();
     if (is_null($key)) {
-      return isset(self::$_configurations[$self]) ? self::$_configurations[$self]
-        : $config;
+      return isset(self::$_configurations[$self]) ? self::$_configurations[$self] : $config;
     }
     if (is_array($key)) {
-      return self::$_configurations[$self] = array_replace_recursive(
-        self::$_configurations[$self], $key);
+      return self::$_configurations[$self] = array_replace_recursive(self::$_configurations[$self], $key);
     }
     if (!is_null($value) || $null) {
-      self::$_configurations[$self] = array_replace_recursive(
-        self::$_configurations[$self],
-        Utility\Parser\Ini::parse(array(
-          $key => $value
-        )));
+      self::$_configurations[$self] = array_replace_recursive(self::$_configurations[$self], Utility\Parser\Ini::parse(array(
+        $key => $value
+      )));
     }
     $keys = explode('.', $key);
     if (isset(self::$_configurations[$self])) {
@@ -233,11 +225,13 @@ abstract class Stub
   public function ___call($name, $arguments)
   {
     if (is_callable(array(
-      $this, $name
+      $this,
+      $name
     ))) {
       return call_user_func_array(array(
-          $this, $name
-        ), $arguments);
+        $this,
+        $name
+      ), $arguments);
     }
     throw new Exception("Method {$name} undefined in class " . get_class($this));
   }
@@ -252,8 +246,7 @@ abstract class Stub
 
   public static function ___callStatic($name, $arguments)
   {
-    throw new Exception(
-      "Static method {$name} undefined in class " . get_called_class());
+    throw new Exception("Static method {$name} undefined in class " . get_called_class());
   }
 
   /**
@@ -376,10 +369,10 @@ abstract class Stub
     $method = array_shift($args);
     foreach (self::$_observers[spl_object_hash($this)] as $observer) {
       if (method_exists($observer, $method)) {
-        call_user_func_array(
-          array(
-            $observer, $method
-          ), $args);
+        call_user_func_array(array(
+          $observer,
+          $method
+        ), $args);
       }
     }
   }

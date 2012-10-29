@@ -23,7 +23,7 @@ use Aldu\Core;
 class Attribute extends Core\Stub
 {
   public $value;
-  
+
   public function __construct($value = null)
   {
     $this->value = $value;

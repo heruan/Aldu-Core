@@ -23,12 +23,12 @@ use Aldu\Core\Net;
 class Session extends Net\HTTP
 {
   public $id;
-  
+
   public function __construct()
   {
     $this->id = $this->start();
   }
-  
+
   public function start()
   {
     if (!$id = session_id()) {
@@ -42,30 +42,30 @@ class Session extends Net\HTTP
     }
     return $id;
   }
-  
+
   public function close()
   {
     $this->id = null;
     return session_write_close();
   }
-  
+
   public function destroy()
   {
     $this->close();
     session_unset();
     session_destroy();
   }
-  
+
   public function save($key, $value)
   {
     $_SESSION[$key] = serialize($value);
   }
-  
+
   public function read($key)
   {
     return isset($_SESSION[$key]) ? unserialize($_SESSION[$key]) : null;
   }
-  
+
   public function delete($key)
   {
     if (isset($_SESSION[$key])) {

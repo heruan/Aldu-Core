@@ -22,5 +22,5 @@ use Aldu\Core;
 
 class Engine extends Core\Stub implements EngineInterface
 {
-  
+
 }

@@ -43,33 +43,37 @@ $sla = SLA::first();
 class ODBC extends Datasource\Driver implements Datasource\DriverInterface
 {
   const DATETIME_FORMAT = 'YmdHis';
-  protected static $configuration = array(__CLASS__ => array(
-    'debug' => array(
-      'read' => false
-    ),
-    'revisions' => false,
-    'type' => 'db2',
-    'db2' => array(
-      'describe' => array(
-        'table' => 'QSYS2.SYSCOLUMNS',
-        'schema' => 'TABLE_SCHEMA',
-        'name' => 'TABLE_NAME',
-        'field' => 'COLUMN_NAME',
-        'type' => 'DATA_TYPE',
-        'length' => 'LENGTH',
-        'null' => 'IS_NULLABLE'
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'debug' => array(
+        'read' => false
+      ),
+      'revisions' => false,
+      'type' => 'db2',
+      'db2' => array(
+        'describe' => array(
+          'table' => 'QSYS2.SYSCOLUMNS',
+          'schema' => 'TABLE_SCHEMA',
+          'name' => 'TABLE_NAME',
+          'field' => 'COLUMN_NAME',
+          'type' => 'DATA_TYPE',
+          'length' => 'LENGTH',
+          'null' => 'IS_NULLABLE'
+        )
       )
     )
-  ));
+  );
 
   public function __construct($url, $parts)
   {
     parent::__construct($url);
-    $conn = array_merge(
-      array(
-        'host' => 'localhost', 'port' => null, 'user' => null, 'pass' => null,
-        'path' => null
-      ), $parts);
+    $conn = array_merge(array(
+      'host' => 'localhost',
+      'port' => null,
+      'user' => null,
+      'pass' => null,
+      'path' => null
+    ), $parts);
     try {
       $this->link = new PDO($conn['scheme'] . ':' . $conn['host'], $conn['user'], $conn['pass']);
     } catch (PDOException $e) {
@@ -117,7 +121,6 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
 
   }
 
-
   protected function describe($table)
   {
     $type = static::cfg('type');
@@ -130,9 +133,10 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
     $explode = explode('.', $table);
     $where = array(
       static::cfg("$type.describe.schema") . " = '{$explode[0]}'",
-      static::cfg("$type.describe.name") . " = '{$explode[1]}'" 
+      static::cfg("$type.describe.name") . " = '{$explode[1]}'"
     );
-    $query = "SELECT " . implode(', ', $select) . " FROM " . static::cfg("$type.describe.table") . " WHERE " . implode(' AND ', $where);
+    $query = "SELECT " . implode(', ', $select) . " FROM " . static::cfg("$type.describe.table") . " WHERE "
+      . implode(' AND ', $where);
     $describe = $this->query($query);
     $fields = array();
     foreach ($describe as $field) {
@@ -152,7 +156,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
     $describe = $this->describe($table);
     return $describe['fields'][strtoupper($column)]['type'];
   }
-  
+
   protected function tableName($class)
   {
     $class = is_object($class) ? get_class($class) : $class;
@@ -163,8 +167,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
   {
   }
 
-  protected function search($class, $search = array(), $logic = '$and',
-    $op = '=')
+  protected function search($class, $search = array(), $logic = '$and', $op = '=')
   {
     $where = array();
     foreach ($search as $conditions) {
@@ -332,9 +335,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
           default:
             $v = array_shift($condition);
           }
-          $k = array_search($attribute,
-                  array_flip(
-                    $class::cfg('datasource.odbc.mappings'))) ? : $attribute;
+          $k = array_search($attribute, array_flip($class::cfg('datasource.odbc.mappings'))) ? : $attribute;
           if ($v instanceof Core\Model) {
             if (!$v->id) {
               $v->save();
@@ -386,8 +387,7 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
     return $where ? "($where)" : '1 = 1';
   }
 
-  protected function conditions($class, $search = array(), $logic = '$and',
-    $op = '=')
+  protected function conditions($class, $search = array(), $logic = '$and', $op = '=')
   {
     $and = array();
     $where = array();
@@ -467,14 +467,13 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
   {
     $normalize = array();
     foreach ($row as $field => $value) {
-      $field = array_search($field, $class::cfg("datasource.odbc.mappings")) ? 
-        : strtolower($field);
+      $field = array_search($field, $class::cfg("datasource.odbc.mappings")) ? : strtolower($field);
       $value = trim($value);
       $normalize[$field] = $value ? : null;
     }
     return $normalize;
   }
-  
+
   protected function normalizeModel(&$model)
   {
     $class = get_class($model);
@@ -553,14 +552,12 @@ class ODBC extends Datasource\Driver implements Datasource\DriverInterface
   {
   }
 
-  public function belongs($tag, $model, $relation = array(), $search = array(),
-    $options = array())
+  public function belongs($tag, $model, $relation = array(), $search = array(), $options = array())
   {
     return array();
   }
 
-  public function has($model, $tag = null, $relation = array(),
-    $search = array(), $options = array())
+  public function has($model, $tag = null, $relation = array(), $search = array(), $options = array())
   {
     return array();
   }

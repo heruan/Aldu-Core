@@ -22,5 +22,5 @@ use Aldu\Core\Net;
 
 class Cookie extends Net\HTTP
 {
-  
+
 }

@@ -22,5 +22,5 @@ use Aldu\Core\Cache;
 
 class XCache extends Cache\Engine
 {
-  
+
 }

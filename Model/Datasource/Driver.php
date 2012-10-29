@@ -39,25 +39,23 @@ class Driver extends Core\Stub implements DriverInterface
     return $model;
   }
 
-
   protected function encrypt(&$string)
   {
     if (preg_match('/^{SSHA|MD5}/i', $string)) {
       return $string;
     }
     switch (static::cfg('encryption')) {
-      case "ssha":
-        for ($i = 1; $i <= 10; $i++) {
-          $salt .= substr("0123456789abcdef", rand(0, 15), 1);
-        }
-        $ssha = "{SSHA}"
-            . base64_encode(pack("H*", sha1($string . $salt)) . $salt);
-        $string = $ssha;
-        break;
-      case "md5":
-      default:
-        $md5 = "{MD5}" . base64_encode(pack("H*", md5($string)));
-        $string = $md5;
+    case "ssha":
+      for ($i = 1; $i <= 10; $i++) {
+        $salt .= substr("0123456789abcdef", rand(0, 15), 1);
+      }
+      $ssha = "{SSHA}" . base64_encode(pack("H*", sha1($string . $salt)) . $salt);
+      $string = $ssha;
+      break;
+    case "md5":
+    default:
+      $md5 = "{MD5}" . base64_encode(pack("H*", md5($string)));
+      $string = $md5;
     }
     return $string;
   }

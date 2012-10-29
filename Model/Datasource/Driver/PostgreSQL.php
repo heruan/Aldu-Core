@@ -22,5 +22,5 @@ use Aldu\Core\Model\Datasource;
 
 class PostgreSQL extends Datasource\Driver
 {
-  
+
 }

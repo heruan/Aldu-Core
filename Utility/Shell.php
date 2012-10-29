@@ -18,7 +18,6 @@
  */
 
 namespace Aldu\Core\Utility;
-
 use Aldu\Core;
 
 class Shell extends Core\Stub
@@ -27,13 +26,16 @@ class Shell extends Core\Stub
   {
     $descriptorspec = array(
       0 => array(
-        "pipe", "r"
+        "pipe",
+        "r"
       ),
       1 => array(
-        "pipe", "w"
+        "pipe",
+        "w"
       ),
       2 => array(
-        "pipe", "w"
+        "pipe",
+        "w"
       )
     );
     $pipes = array();
@@ -51,7 +53,8 @@ class Shell extends Core\Stub
     stream_set_blocking($pipes[2], false);
 
     $todo = array(
-      $pipes[1], $pipes[2]
+      $pipes[1],
+      $pipes[2]
     );
 
     while (true) {

@@ -47,17 +47,16 @@ class Listener extends Core\Stub
    * @param boolean $once
    * @throws Exception
    */
-  public function on($name, $callback = null, $arguments = array(),
-    $once = false)
+  public function on($name, $callback = null, $arguments = array(), $once = false)
   {
     if (is_array($name)) {
       foreach ($name as $event) {
-        extract(
-          array_merge(
-            array(
-              'on' => null, 'callback' => null, 'arguments' => array(),
-              'once' => false
-            ), $event));
+        extract(array_merge(array(
+          'on' => null,
+          'callback' => null,
+          'arguments' => array(),
+          'once' => false
+        ), $event));
         if ($on && is_callable($callback)) {
           $this->on($on, $callback, $arguments, $once);
         }
@@ -68,7 +67,9 @@ class Listener extends Core\Stub
         $this->events[$name] = array();
       }
       $this->events[$name][] = array(
-        'callback' => $callback, 'arguments' => $arguments, 'once' => $once
+        'callback' => $callback,
+        'arguments' => $arguments,
+        'once' => $once
       );
     }
     else {

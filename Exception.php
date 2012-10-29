@@ -31,7 +31,10 @@ class Exception extends stdException
 
   public static function initialize()
   {
-    set_exception_handler(array(__CLASS__, 'catcher'));
+    set_exception_handler(array(
+      __CLASS__,
+      'catcher'
+    ));
   }
 
   public static function catcher($e)

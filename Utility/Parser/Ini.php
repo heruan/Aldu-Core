@@ -219,7 +219,9 @@ class Ini
     $pos = strpos($path, '.');
 
     if ($pos === false) {
-      return array($path => $value);
+      return array(
+        $path => $value
+      );
     }
 
     $key = substr($path, 0, $pos);
@@ -251,7 +253,9 @@ class Ini
         }
         else {
           if ($key === 0) {
-            $a = array(0 => self::_arrayMergeRecursive($a, $value));
+            $a = array(
+              0 => self::_arrayMergeRecursive($a, $value)
+            );
           }
           else {
             $a[$key] = $value;

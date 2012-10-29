@@ -29,8 +29,7 @@ class Controller extends Event\Listener
   protected $request;
   protected $response;
 
-  public function __construct(HTTP\Request $request = null,
-    HTTP\Response $response = null)
+  public function __construct(HTTP\Request $request = null, HTTP\Response $response = null)
   {
     $this->request = $request ? : HTTP\Request::instance();
     $this->response = $response ? : HTTP\Response::instance();
@@ -78,10 +77,10 @@ class Controller extends Event\Listener
   public function browse($offset = 0, $limit = 10)
   {
     $search = $this->request->query('search');
-    $options = array_merge($this->request->query('options'),
-      array(
-        'skip' => $offset, 'limit' => $limit
-      ));
+    $options = array_merge($this->request->query('options'), array(
+      'skip' => $offset,
+      'limit' => $limit
+    ));
     $models = $this->model->read($search, $options);
     return $this->view->browse($models);
   }
@@ -89,8 +88,8 @@ class Controller extends Event\Listener
   public function read($id)
   {
     if ($model = $this->model->first(array(
-        'id' => $id
-      ))) {
+      'id' => $id
+    ))) {
     }
     return $this->view->read($model);
   }
@@ -101,8 +100,8 @@ class Controller extends Event\Listener
       $this->post(__FUNCTION__, $this->request->data());
     }
     if ($model = $this->model->first(array(
-        'id' => $id
-      ))) {
+      'id' => $id
+    ))) {
     }
     return $this->view->edit($model);
   }
@@ -132,8 +131,10 @@ class Controller extends Event\Listener
           continue;
         }
         $tags = array(
-          '-has' => array(), '+has' => array(),
-          '-belongs' => array(), '+belongs' => array()
+          '-has' => array(),
+          '+has' => array(),
+          '-belongs' => array(),
+          '+belongs' => array()
         );
         foreach ($attributes as $attribute => $value) {
           if (ClassLoader::classExists($attribute)) {
@@ -156,7 +157,8 @@ class Controller extends Event\Listener
                   else {
                     $tags["+$rel_type"][$tag_id] = array(
                       'tag' => $tag,
-                      'relation' => isset($relations['relations'], $relations['relations'][$tag_id]) ? $relations['relations'][$tag_id] : array()
+                      'relation' => isset($relations['relations'], $relations['relations'][$tag_id]) ? $relations['relations'][$tag_id]
+                        : array()
                     );
                   }
                 }
@@ -177,11 +179,7 @@ class Controller extends Event\Listener
           }
         }
         if ($model->save()) {
-          $this->response
-            ->message(
-              $this->view->locale
-                ->t('%s %s successfully %s.', $model->name(), $model->id,
-                  $this->view->locale->t(Inflector::pastParticiple($action))));
+          $this->response->message($this->view->locale->t('%s %s successfully %s.', $model->name(), $model->id, $this->view->locale->t(Inflector::pastParticiple($action))));
           foreach ($tags as $type => $tagArray) {
             foreach ($tagArray as $tag) {
               extract($tag);
@@ -220,8 +218,8 @@ class Controller extends Event\Listener
   public function delete($id)
   {
     if ($model = $this->model->first(array(
-        'id' => $id
-      ))) {
+      'id' => $id
+    ))) {
     }
     return $this->view->delete($model);
   }

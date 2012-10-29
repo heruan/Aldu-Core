@@ -17,19 +17,20 @@
  */
 
 namespace Aldu\Core;
-
 class Locale extends Stub
 {
   public $default;
   public $current;
 
-  protected static $configuration = array(__CLASS__ => array(
-    'default' => array(
-      'id' => 1,
-      'name' => 'en-us',
-      'title' => 'English (United States)'
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'default' => array(
+        'id' => 1,
+        'name' => 'en-us',
+        'title' => 'English (United States)'
+      )
     )
-  ));
+  );
 
   public function __construct($locale = null)
   {
@@ -44,7 +45,10 @@ class Locale extends Stub
     $args = func_get_args();
     $text = array_shift($args);
     //return vsprintf(_($text), $args);
-    $attributes = array('msgid' => $text, 'locale' => $this->current);
+    $attributes = array(
+      'msgid' => $text,
+      'locale' => $this->current
+    );
     $message = new Locale\Models\Message($attributes);
     if ($msg = Locale\Models\Message::first($attributes)) {
       $message = $msg;

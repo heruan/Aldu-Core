@@ -31,7 +31,7 @@ class HTTP extends Core\Stub
    * @param  string $key Environment variable name.
    * @return string Environment variable setting.
    */
-  
+
   public function bytes($value)
   {
     if (is_numeric($value)) {
@@ -42,20 +42,20 @@ class HTTP extends Core\Stub
       $qty = substr($value, 0, $value_length - 1);
       $unit = strtolower(substr($value, $value_length - 1));
       switch ($unit) {
-        case 'k':
-          $qty *= 1024;
-          break;
-        case 'm':
-          $qty *= 1048576;
-          break;
-        case 'g':
-          $qty *= 1073741824;
-          break;
+      case 'k':
+        $qty *= 1024;
+        break;
+      case 'm':
+        $qty *= 1048576;
+        break;
+      case 'g':
+        $qty *= 1073741824;
+        break;
       }
       return $qty;
     }
   }
-  
+
   public static function env($key)
   {
     if ($key === 'HTTPS') {
@@ -64,13 +64,13 @@ class HTTP extends Core\Stub
       }
       return (strpos(static::env('SCRIPT_URI'), 'https://') === 0);
     }
-  
+
     if ($key === 'SCRIPT_NAME') {
       if (static::env('CGI_MODE') && isset($_ENV['SCRIPT_URL'])) {
         $key = 'SCRIPT_URL';
       }
     }
-  
+
     $val = null;
     if (isset($_SERVER[$key])) {
       $val = $_SERVER[$key];
@@ -81,91 +81,91 @@ class HTTP extends Core\Stub
     elseif (getenv($key) !== false) {
       $val = getenv($key);
     }
-  
+
     if ($key === 'REMOTE_ADDR' && $val === static::env('SERVER_ADDR')) {
       $addr = static::env('HTTP_PC_REMOTE_ADDR');
       if ($addr !== null) {
         $val = $addr;
       }
     }
-  
+
     if ($val !== null) {
       return $val;
     }
-  
+
     switch ($key) {
-      case 'GET':
-        return isset($_GET) ? $_GET : array();
-      case 'POST':
-        return isset($_POST) ? $_POST : array();
-      case 'FILES':
-        return isset($_FILES) ? $_FILES : array();
-      case 'SESSION':
-        return isset($_SESSION) ? $_SESSION : array();
-      case 'COOKIE':
-        return isset($_COOKIE) ? $_COOKIE : array();
-      case 'SCRIPT_FILENAME':
-        if (defined('SERVER_IIS') && SERVER_IIS === true) {
-          return str_replace('\\\\', '\\', static::env('PATH_TRANSLATED'));
-        }
-        break;
-      case 'DOCUMENT_ROOT':
-        $name = static::env('SCRIPT_NAME');
-        $filename = static::env('SCRIPT_FILENAME');
-        $offset = 0;
-        if (!strpos($name, '.php')) {
-          $offset = 4;
-        }
-        return substr($filename, 0, -(strlen($name) + $offset));
-        break;
-      case 'PHP_SELF':
-        return str_replace(env('DOCUMENT_ROOT'), '', static::env('SCRIPT_FILENAME'));
-        break;
-      case 'CGI_MODE':
-        return (PHP_SAPI === 'cgi');
-        break;
-      case 'HTTP_BASE':
-        $host = static::env('HTTP_HOST');
-        $parts = explode('.', $host);
-        $count = count($parts);
-  
-        if ($count === 1) {
+    case 'GET':
+      return isset($_GET) ? $_GET : array();
+    case 'POST':
+      return isset($_POST) ? $_POST : array();
+    case 'FILES':
+      return isset($_FILES) ? $_FILES : array();
+    case 'SESSION':
+      return isset($_SESSION) ? $_SESSION : array();
+    case 'COOKIE':
+      return isset($_COOKIE) ? $_COOKIE : array();
+    case 'SCRIPT_FILENAME':
+      if (defined('SERVER_IIS') && SERVER_IIS === true) {
+        return str_replace('\\\\', '\\', static::env('PATH_TRANSLATED'));
+      }
+      break;
+    case 'DOCUMENT_ROOT':
+      $name = static::env('SCRIPT_NAME');
+      $filename = static::env('SCRIPT_FILENAME');
+      $offset = 0;
+      if (!strpos($name, '.php')) {
+        $offset = 4;
+      }
+      return substr($filename, 0, -(strlen($name) + $offset));
+      break;
+    case 'PHP_SELF':
+      return str_replace(env('DOCUMENT_ROOT'), '', static::env('SCRIPT_FILENAME'));
+      break;
+    case 'CGI_MODE':
+      return (PHP_SAPI === 'cgi');
+      break;
+    case 'HTTP_BASE':
+      $host = static::env('HTTP_HOST');
+      $parts = explode('.', $host);
+      $count = count($parts);
+
+      if ($count === 1) {
+        return '.' . $host;
+      }
+      elseif ($count === 2) {
+        return '.' . $host;
+      }
+      elseif ($count === 3) {
+        $gTLD = array(
+          'aero',
+          'asia',
+          'biz',
+          'cat',
+          'com',
+          'coop',
+          'edu',
+          'gov',
+          'info',
+          'int',
+          'jobs',
+          'mil',
+          'mobi',
+          'museum',
+          'name',
+          'net',
+          'org',
+          'pro',
+          'tel',
+          'travel',
+          'xxx'
+        );
+        if (in_array($parts[1], $gTLD)) {
           return '.' . $host;
         }
-        elseif ($count === 2) {
-          return '.' . $host;
-        }
-        elseif ($count === 3) {
-          $gTLD = array(
-              'aero',
-              'asia',
-              'biz',
-              'cat',
-              'com',
-              'coop',
-              'edu',
-              'gov',
-              'info',
-              'int',
-              'jobs',
-              'mil',
-              'mobi',
-              'museum',
-              'name',
-              'net',
-              'org',
-              'pro',
-              'tel',
-              'travel',
-              'xxx'
-          );
-          if (in_array($parts[1], $gTLD)) {
-            return '.' . $host;
-          }
-        }
-        array_shift($parts);
-        return '.' . implode('.', $parts);
-        break;
+      }
+      array_shift($parts);
+      return '.' . implode('.', $parts);
+      break;
     }
     return null;
   }

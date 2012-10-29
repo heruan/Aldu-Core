@@ -47,13 +47,16 @@ class Form extends Helper\HTML
     $this->response = Core\Net\HTTP\Response::instance();
     $this->router = Core\Router::instance();
     $this->locale = Core\Locale::instance();
-    extract(
-      array_merge(
-        array(
-          'id' => null, 'index' => 0, 'method' => 'post', 'context' => null,
-          'defaults' => array(), 'redirect' => null, 'references' => array(),
-          'attributes' => array()
-        ), $_));
+    extract(array_merge(array(
+      'id' => null,
+      'index' => 0,
+      'method' => 'post',
+      'context' => null,
+      'defaults' => array(),
+      'redirect' => null,
+      'references' => array(),
+      'attributes' => array()
+    ), $_));
     $this->indexes = $references;
     $this->defaults = $defaults;
     $this->setModel($model, $index);
@@ -63,14 +66,18 @@ class Form extends Helper\HTML
     $this->class = 'aldu-core-view-helper-html-form';
     $this->id = $id ? : 'form' . uniqid(); //md5($this->model . $this->action);
     $this->form = $this->append('form', array_merge($attributes, array(
-      'id' => $this->id, 'name' => $this->action,
+      'id' => $this->id,
+      'name' => $this->action,
       'data-model' => $this->model ? get_class($this->model) : null,
       'data-id' => $this->model ? $this->model->id : null,
-      'action' => $this->context->url($this->action), 'method' => $method
+      'action' => $this->context->url($this->action),
+      'method' => $method
     )));
     if ($redirect) {
       $this->append('input', array(
-        'form' => $this->id, 'type' => 'hidden', 'name' => 'redirect',
+        'form' => $this->id,
+        'type' => 'hidden',
+        'name' => 'redirect',
         'value' => $redirect
       ));
     }
@@ -146,15 +153,17 @@ class Form extends Helper\HTML
     }
     $readonly = $this->model->id ? !$this->model->authorized($this->request->aro, $this->action, $name) : false;
     $_ = array_shift($arguments) ? : array();
-    $_ = array_merge(
-      array(
-        'title' => '', 'description' => '', 'attributes' => array(),
-        'options' => array(), 'required' => false,
-        'readonly' => $readonly,
-        'value' => array_key_exists($name, $this->values) ? $this->values[$name] : false,
-        'relation' => array(),
-        'redirect' => false
-      ), $_);
+    $_ = array_merge(array(
+      'title' => '',
+      'description' => '',
+      'attributes' => array(),
+      'options' => array(),
+      'required' => false,
+      'readonly' => $readonly,
+      'value' => array_key_exists($name, $this->values) ? $this->values[$name] : false,
+      'relation' => array(),
+      'redirect' => false
+    ), $_);
     extract($_);
     $this->normalizeValue($value);
     $modelClass = get_class($this->model);
@@ -167,13 +176,13 @@ class Form extends Helper\HTML
     $id = uniqid(Inflector::slug($name));
     $_name = $modelClass . '[' . $this->indexes[$modelClass] . '][' . $name . ']';
     $div = $this->create('div', array(
-      'title' => $description, 'data-name' => $name,
+      'title' => $description,
+      'data-name' => $name,
       'class' => implode(' ', array_filter(array(
-          "aldu-core-view-helper-html-form-element",
-          "aldu-core-view-helper-html-form-$type",
-          $required ? "aldu-core-view-helper-html-form-required" : null
-        ))
-      )
+        "aldu-core-view-helper-html-form-element",
+        "aldu-core-view-helper-html-form-$type",
+        $required ? "aldu-core-view-helper-html-form-required" : null
+      )))
     ));
     $this->append($div);
     $label = $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
@@ -191,13 +200,13 @@ class Form extends Helper\HTML
       if ($relation) {
         extract($relation, EXTR_PREFIX_ALL, 'rel');
         $__name = $_name;
-        switch($type) {
-          case 'radio':
-            $_name .= "[$rel_type][*]";
-            break;
-          case 'checkbox':
-            $_name .= "[$rel_type][$value]";
-            break;
+        switch ($type) {
+        case 'radio':
+          $_name .= "[$rel_type][*]";
+          break;
+        case 'checkbox':
+          $_name .= "[$rel_type][$value]";
+          break;
         }
         if (isset($rel_name) && isset($rel_relation)) {
           $_name = $__name . "[$rel_type][relations][$value][$rel_name]";
@@ -206,9 +215,8 @@ class Form extends Helper\HTML
       $checked = isset($attributes['checked']) ? $attributes['checked'] : false;
       if ($relation) {
         if (isset($rel_name)) {
-          if (isset($this->values[$name][$rel_type]['relations'][$value][$rel_name]) &&
-              isset($this->values[$name][$rel_type]['relations'][$value][$rel_name])
-          ) {
+          if (isset($this->values[$name][$rel_type]['relations'][$value][$rel_name])
+            && isset($this->values[$name][$rel_type]['relations'][$value][$rel_name])) {
             $checked = true;
           }
         }
@@ -220,21 +228,19 @@ class Form extends Helper\HTML
         $checked = true;
       }
       if ($checked) {
-        $div->append($this->create('input',
-          array(
-            'form' => $this->id,
-            'name' => $_name, 'type' => 'hidden', 'value' => '-'
-          )
-        ));
+        $div->append($this->create('input', array(
+          'form' => $this->id,
+          'name' => $_name,
+          'type' => 'hidden',
+          'value' => '-'
+        )));
       }
-      $element = $this->create('input',
-        array_merge($attributes,
-          array(
-            'id' => $id, 'name' => $_name, 'type' => $type,
-            'value' => is_null($value) ? 0 : $value
-          )
-        )
-      );
+      $element = $this->create('input', array_merge($attributes, array(
+        'id' => $id,
+        'name' => $_name,
+        'type' => $type,
+        'value' => is_null($value) ? 0 : $value
+      )));
       if ($checked) {
         $element->checked = 'checked';
       }
@@ -256,16 +262,17 @@ class Form extends Helper\HTML
         $_name .= '[]';
       }
       $element = $this->create('select', array_merge($attributes, array(
-        'id' => $id, 'name' => $_name
+        'id' => $id,
+        'name' => $_name
       )));
       foreach ($options as $_value => $_label) {
         if (is_array($_label)) {
           $optgroup = $element->append('optgroup', array(
-              'label' => $_value
+            'label' => $_value
           ));
           foreach ($_label as $__value => $__label) {
             $option = $optgroup->append('option', $__label, array(
-                'value' => $__value
+              'value' => $__value
             ));
             if (isset($this->values[$name]) && $this->values[$name] == $__value) {
               $option->selected = 'selected';
@@ -274,20 +281,19 @@ class Form extends Helper\HTML
         }
         else {
           $option = $element->append('option', $_label, array(
-              'value' => $_value
+            'value' => $_value
           ));
-          if (
-              isset($this->values[$name]) &&
-              ($this->values[$name] == $_value || (is_array($this->values[$name]) && in_array($_value, $this->values[$name])))
-            ) {
+          if (isset($this->values[$name])
+            && ($this->values[$name] == $_value
+              || (is_array($this->values[$name]) && in_array($_value, $this->values[$name])))) {
             $option->selected = 'selected';
           }
-          elseif($relation) {
+          elseif ($relation) {
             if (isset($rel_name)) {
-              if (isset($this->values[$name][$rel_type]['relations'][$value][$rel_name]) &&
-                  ($this->values[$name][$rel_type]['relations'][$value][$rel_name] == $_value
-                  || (is_array($this->values[$name][$rel_type]['relations'][$value][$rel_name]) && in_array($_value, $this->values[$name][$rel_type]['relations'][$value][$rel_name])))
-              ) {
+              if (isset($this->values[$name][$rel_type]['relations'][$value][$rel_name])
+                && ($this->values[$name][$rel_type]['relations'][$value][$rel_name] == $_value
+                  || (is_array($this->values[$name][$rel_type]['relations'][$value][$rel_name])
+                    && in_array($_value, $this->values[$name][$rel_type]['relations'][$value][$rel_name])))) {
                 $option->selected = 'selected';
               }
             }
@@ -296,12 +302,12 @@ class Form extends Helper\HTML
             }
           }
           if (isset($option->selected)) {
-            $div->append($this->create('input',
-              array(
-                'form' => $this->id,
-                'name' => $__name . "[$_value]", 'type' => 'hidden', 'value' => '-'
-              )
-            ));
+            $div->append($this->create('input', array(
+              'form' => $this->id,
+              'name' => $__name . "[$_value]",
+              'type' => 'hidden',
+              'value' => '-'
+            )));
           }
         }
       }
@@ -310,7 +316,8 @@ class Form extends Helper\HTML
     case 'fieldset':
       $attributes['name'] = $_name;
       $element = $this->create('fieldset', $attributes);
-      if ($title) $element->append('legend', $title);
+      if ($title)
+        $element->append('legend', $title);
       $div->append($element);
       break;
     case 'datalist':
@@ -324,7 +331,8 @@ class Form extends Helper\HTML
       break;
     case 'submit':
       $element = $this->create('button', $title ? : $this->locale->t('Submit'), array_merge($attributes, array(
-        'name' => 'submit', 'type' => $type,
+        'name' => 'submit',
+        'type' => $type,
         'value' => $this->currentIndex()
       )));
       $div->append($element);
@@ -345,23 +353,26 @@ class Form extends Helper\HTML
           'value' => $this->request->base . $this->request->path
         )));
         $div->append($this->radio('redirect', array(
-         'title' => $this->locale->t('View this %s', $model->name()),
-         'value' => ''
+          'title' => $this->locale->t('View this %s', $model->name()),
+          'value' => ''
         )));
         $this->setModel($model, $index);
       }
       break;
     case 'button':
       $element = $this->create('button', $title, array_merge($attributes, array(
-        'name' => $name, 'value' => $value
+        'name' => $name,
+        'value' => $value
       )));
       $div->append($element);
       break;
     case 'textarea':
-      $element = $this ->create('textarea', $value ? : null, array_merge($attributes, array(
-        'id' => $id, 'name' => $_name
+      $element = $this->create('textarea', $value ? : null, array_merge($attributes, array(
+        'id' => $id,
+        'name' => $_name
       )));
-      if ($description) $element->placeholder = $description;
+      if ($description)
+        $element->placeholder = $description;
       $div->append($label, $element);
       break;
     case 'file':
@@ -372,18 +383,20 @@ class Form extends Helper\HTML
       case 'image':
         if ($this->model->filepath || ($value = $value ? : null)) {
           $thumb = $this->create('img', array(
-            'src' => $this->model->url('thumb'), 'alt' => ''
+            'src' => $this->model->url('thumb'),
+            'alt' => ''
           ));
         }
         break;
       }
       if ($label) {
-        $label->append('span.tooltip', $this->locale->t('Maximum file size: %sMB',
-          round($this->request->upload->maxUploadSize() / 1024 / 1024)
-        ));
+        $label->append('span.tooltip', $this->locale->t('Maximum file size: %sMB', round($this->request->upload->maxUploadSize()
+          / 1024 / 1024)));
       }
       $element = $this->create('input', array_merge($attributes, array(
-        'id' => $id, 'name' => $_name, 'type' => $type
+        'id' => $id,
+        'name' => $_name,
+        'type' => $type
       )));
       $div->append($label, $thumb, $element);
       break;
@@ -394,10 +407,14 @@ class Form extends Helper\HTML
     default:
       $div->addClass('aldu-core-view-helper-html-form-input');
       $element = $this->create('input', array_merge($attributes, array(
-        'id' => $id, 'name' => $_name, 'title' => $title,
-        'type' => $type, 'value' => $value !== false ? $value : null
+        'id' => $id,
+        'name' => $_name,
+        'title' => $title,
+        'type' => $type,
+        'value' => $value !== false ? $value : null
       )));
-      if ($description) $element->placeholder = $description;
+      if ($description)
+        $element->placeholder = $description;
       if ($type === 'hidden') {
         $div = $element;
         $this->append($div);
@@ -447,7 +464,8 @@ class Form extends Helper\HTML
       $index = $this->currentIndex();
       $this->setModel(false);
       $confirm = $this->{$input->type}(null, array(
-        'title' => $title, 'value' => $input->value
+        'title' => $title,
+        'value' => $input->value
       ));
       $this->setModel($model, $index);
       $confirm->node('input')->first()->set('data-equals', $input->id);
@@ -457,10 +475,9 @@ class Form extends Helper\HTML
 
   public function add($node)
   {
-    $this
-    ->button('_add',
-        array(
-            'title' => 'Add', 'value' => $this->id
-        ));
+    $this->button('_add', array(
+      'title' => 'Add',
+      'value' => $this->id
+    ));
   }
 }

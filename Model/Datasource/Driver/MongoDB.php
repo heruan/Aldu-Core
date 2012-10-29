@@ -26,11 +26,13 @@ use Mongo, MongoDBRef, MongoId, MongoDate, MongoRegex, MongoException;
 
 class MongoDB extends Datasource\Driver implements DriverInterface
 {
-  protected static $configuration = array(__CLASS__ => array(
-    'autoincrement' => array(
-      'collection' => '_autoincrement'
+  protected static $configuration = array(
+    __CLASS__ => array(
+      'autoincrement' => array(
+        'collection' => '_autoincrement'
+      )
     )
-  ));
+  );
   protected $conn;
   private $mongoIds = array();
 
@@ -70,27 +72,24 @@ class MongoDB extends Datasource\Driver implements DriverInterface
       $this->denormalizeArray($doc);
       foreach ($ids as $id) {
         $doc['_id'] = $id;
-        $this->link->$collection
-          ->update(array(
-              '_id' => $id,
-            ), $doc, array(
-              'upsert' => true
-            ));
+        $this->link->$collection->update(array(
+          '_id' => $id,
+        ), $doc, array(
+          'upsert' => true
+        ));
       }
       unset($doc['_id']);
       foreach ($class::cfg('extensions') as $extName => $ext) {
         if (isset($ext['attributes'])) {
           $extDoc = array_intersect_key($doc, $ext['attributes']);
           $doc = array_diff_key($doc, $extDoc);
-          $this->link->$collection
-            ->update(
-              array(
-                'id' => $doc['id']
-              ), array(
-                '$set' => $doc
-              ), array(
-                'multiple' => true
-              ));
+          $this->link->$collection->update(array(
+            'id' => $doc['id']
+          ), array(
+            '$set' => $doc
+          ), array(
+            'multiple' => true
+          ));
         }
       }
     }
@@ -100,8 +99,8 @@ class MongoDB extends Datasource\Driver implements DriverInterface
   {
     $collection = $this->collection($model);
     $this->link->$collection->remove(array(
-        'id' => $model->id
-      ));
+      'id' => $model->id
+    ));
   }
 
   public function purge($class, $search = array())
@@ -110,10 +109,9 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     if (empty($search)) {
       $this->link->$collection->drop();
       $autoincrement = static::cfg('autoincrement.collection');
-      $this->link->$autoincrement
-        ->remove(array(
-          '_id' => $collection
-        ));
+      $this->link->$autoincrement->remove(array(
+        '_id' => $collection
+      ));
     }
     else {
       $this->denormalizeSearch($search);
@@ -219,10 +217,9 @@ class MongoDB extends Datasource\Driver implements DriverInterface
   {
     if (MongoDBRef::isRef($value)) {
       $class = $this->getClass($value['$ref']);
-      $value = $this
-        ->first($class, array(
-          '_id' => $value['$id']
-        ));
+      $value = $this->first($class, array(
+        '_id' => $value['$id']
+      ));
     }
   }
 
@@ -254,29 +251,25 @@ class MongoDB extends Datasource\Driver implements DriverInterface
     if (!$model->id) {
       $autoincrement = static::cfg('autoincrement.collection');
       $collection = $this->collection($class);
-      if (!$this->link->$autoincrement
-        ->find(array(
-          '_id' => $collection
-        ))->count()) {
-        $this->link->$autoincrement
-          ->insert(
-            array(
-              '_id' => $collection, 'id' => 1
-            ));
+      if (!$this->link->$autoincrement->find(array(
+        '_id' => $collection
+      ))->count()) {
+        $this->link->$autoincrement->insert(array(
+          '_id' => $collection,
+          'id' => 1
+        ));
       }
-      $result = $this->link
-        ->command(
-          array(
-            'findandmodify' => $autoincrement,
-            'query' => array(
-              '_id' => $collection
-            ),
-            'update' => array(
-              '$inc' => array(
-                'id' => 1
-              )
-            )
-          ));
+      $result = $this->link->command(array(
+        'findandmodify' => $autoincrement,
+        'query' => array(
+          '_id' => $collection
+        ),
+        'update' => array(
+          '$inc' => array(
+            'id' => 1
+          )
+        )
+      ));
       $model->id = $result['value']['id'];
     }
     if (!isset($this->mongoIds[$class])) {
@@ -296,8 +289,7 @@ class MongoDB extends Datasource\Driver implements DriverInterface
           $this->mongoIds[$class][$model->id][$extName] = array();
         }
         if (!isset($this->mongoIds[$class][$model->id][$extName][$key])) {
-          $this->mongoIds[$class][$model->id][$extName][$key] = new MongoId(
-            $mongoId);
+          $this->mongoIds[$class][$model->id][$extName][$key] = new MongoId($mongoId);
         }
         $mongoIds[] = $this->mongoIds[$class][$model->id][$extName][$key];
       }

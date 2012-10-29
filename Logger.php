@@ -17,8 +17,7 @@
  */
 
 namespace Aldu\Core;
-
 class Logger extends Stub
 {
-  
+
 }

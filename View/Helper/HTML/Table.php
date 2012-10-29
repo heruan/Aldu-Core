@@ -27,7 +27,7 @@ class Table extends Helper\HTML
   public $foot;
   public $colgroup;
   protected $currentRow;
-  
+
   public function __construct($headers = array(), $document = null)
   {
     parent::__construct('table.aldu-core-view-helper-html-table', $document);

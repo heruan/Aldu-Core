@@ -17,8 +17,7 @@
  */
 
 namespace Aldu\Core\View;
-
 interface HelperInterface
 {
-  
+
 }
