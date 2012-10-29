@@ -38,6 +38,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
           'dn' => true
         )
       ),
+      'encryption' => 'md5',
       'configurations' => array(
         array(
           'class' => 'Aldu\Core\Model',
@@ -562,6 +563,9 @@ class LDAP extends Datasource\Driver implements DriverInterface
         }
         else {
           $attribute = $class::cfg("datasource.ldap.$type.mappings.$attribute") ? : $attribute;
+          if ($class::cfg("attributes.$attribute.encrypt")) {
+            $value = $this->encrypt($value);
+          }
           $attributes[$attribute] = $value;
         }
       }
@@ -606,7 +610,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
     return $belongs;
   }
 
-  public function authenticate($class, $id, $password, $idKey, $pwKey, $pwEnc)
+  public function authenticate($class, $id, $password, $idKey, $pwKey)
   {
     $type = $class::cfg('datasource.ldap.type');
     if (static::cfg("$type.authentication.dn")) {

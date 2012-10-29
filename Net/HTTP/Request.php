@@ -379,7 +379,7 @@ class Request extends Net\HTTP
     return md5(implode('::', $id));
   }
 
-  public static function updateAro($class, $id, $password = null, $encrypted = false)
+  public static function updateAro($class, $id, $password = null, $encrypted = true)
   {
     $self = self::instance();
     if ($aro = $class::authenticate($id, $password, $encrypted)) {

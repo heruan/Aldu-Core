@@ -90,7 +90,7 @@ abstract class Stub
     $self = get_called_class();
     if (!isset(self::$_configurations[$self])) {
       if ($parent = get_parent_class($self)) {
-        $config = $parent::configure();
+        $config = array_replace_recursive($parent::configure(), $config);
       }
       if (isset(static::$configuration[$self])) {
         $config = array_replace_recursive($config, static::$configuration[$self]);

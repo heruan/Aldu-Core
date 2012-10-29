@@ -72,6 +72,7 @@ class Page extends Helper\HTML
       }
     }
     $this->ui = new UI($this, $this->theme);
+    $this->theme();
   }
 
   public function theme($theme = null)

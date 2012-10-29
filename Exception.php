@@ -22,5 +22,28 @@ use Exception as stdException;
 
 class Exception extends stdException
 {
-  
+  public function __construct($message = '')
+  {
+    $args = func_get_args();
+    $message = array_shift($args);
+    parent::__construct(vsprintf($message, $args));
+  }
+
+  public static function initialize()
+  {
+    set_exception_handler(array(__CLASS__, 'catcher'));
+  }
+
+  public static function catcher($e)
+  {
+    $page = new View\Helper\HTML\Page();
+    $response = Net\HTTP\Response::instance();
+    $response->message($e->getMessage(), LOG_ERR);
+    $response->message($e->getTraceAsString(), LOG_DEBUG);
+    $response->body($page->compose());
+    $response->send();
+    while (ob_get_level()) {
+      ob_end_flush();
+    }
+  }
 }

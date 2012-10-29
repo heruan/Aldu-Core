@@ -227,7 +227,6 @@ class Datasource extends Core\Stub
     }
     $idKey = $class::cfg('datasource.authentication.id') ?: 'name';
     $pwKey = $class::cfg('datasource.authentication.password') ?: 'password';
-    $pwEnc = $class::cfg('datasource.authentication.encryption') ?: 'md5';
     if ($prepend = $class::cfg('datasource.authentication.prepend')) {
       if (!strpos($id, $prepend['separator'])) {
         $id = $prepend['string'] . $prepend['separator'] . $id;
@@ -238,6 +237,6 @@ class Datasource extends Core\Stub
         $id = $id . $append['separator'] . $append['string'];
       }
     }
-    return $this->driver->authenticate($class, $id, $password, $idKey, $pwKey, $pwEnc);
+    return $this->driver->authenticate($class, $id, $password, $idKey, $pwKey);
   }
 }

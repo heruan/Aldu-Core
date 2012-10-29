@@ -23,8 +23,8 @@ use Aldu\Core;
 
 class UI extends Helper\HTML
 {
-
   protected $engine;
+  protected $locale;
 
   public function __construct($page, $theme)
   {
@@ -32,17 +32,31 @@ class UI extends Helper\HTML
     if (isset($theme['ui']) && isset($theme['ui']['engine'])) {
       $this->engine = $theme['ui']['engine'];
     }
+    $this->locale = Core\Locale::instance();
   }
 
   public function style($node, $engine = null)
   {
-    $engine = $engine ?: $this->engine;
+    $engine = $engine ? : $this->engine;
     switch ($engine) {
+    case 'bootstrap':
+      $levels = array('info', 'success', 'error', 'notice', 'debug');
+      foreach ($node->node('div.aldu-core-view-helper-html-ui-message') as $message) {
+        $message->addClass('alert');
+        foreach ($levels as $level) {
+          if ($message->hasClass($level)) {
+            $message->addClass("alert-$level");
+          }
+        }
+      }
+      $node->node('div.aldu-core-view-helper-html-form-file')->addClass('btn fileinput-button');
+      $node->node('#aldu-core-view-helper-html-page-content table')->addClass('table table-striped');
+      break;
     case 'jquery.mobile':
       foreach ($node->node('ul.aldu-blog-view-menu') as $menu) {
         $menu->data(array(
           'role' => 'listview',
-          //'inset' => 'true'
+        //'inset' => 'true'
         ));
         $menu->node('li > a')->data('transition', 'slide');
         $menu->node('li.active')->data('theme', 'a');
@@ -70,51 +84,33 @@ class UI extends Helper\HTML
   {
     switch ($priority) {
     case LOG_INFO:
-      return $this->success($text);
+      return $this->info($text, $this->locale->t("Info"));
     case LOG_NOTICE:
-      return $this->notice($text);
+      return $this->success($text, $this->locale->t("Success"));
+    case LOG_WARNING:
+      return $this->notice($text, $this->locale->t("Notice"));
     case LOG_ERR:
-      return $this->error($text);
+      return $this->error($text, $this->locale->t("Error"));
     case LOG_DEBUG:
       return $this->debug($text);
     }
   }
 
-  public function success()
+  public function __call($function, $args)
   {
-    $args = func_get_args();
-    $element = $this->document->create('p.aldu-helpers-ui-success');
-    $text = $this->document->create('span', array_shift($args));
-    $element->append($text);
-    return $element;
-  }
-
-  public function notice()
-  {
-    $args = func_get_args();
-    $element = $this->document->create('p.aldu-helpers-ui-notice');
-    $title = $this->document->create('strong', _("Notice") . ': ');
-    $text = $this->document->create('span', array_shift($args));
-    $element->append($title, $text);
-    return $element;
-  }
-
-  public function error()
-  {
-    $args = func_get_args();
-    $element = $this->document->create('p.aldu-helpers-ui-error');
-    $title = $this->document->create('strong', _("Error") . ': ');
-    $text = $this->document->create('span', array_shift($args));
-    $element->append($title, $text);
-    return $element;
-  }
-
-  public function debug()
-  {
-    $args = func_get_args();
-    $element = $this->document->create('p.aldu-helpers-ui-debug');
-    $text = $this->document->create('span', array_shift($args));
-    $element->append($text);
-    return $element;
+    switch ($function) {
+    case 'info':
+    case 'success':
+    case 'notice':
+    case 'error':
+    case 'debug':
+      list ($text, $title) = $args + array(null, null);
+      $element = $this->document->create("div.aldu-core-view-helper-html-ui-message.$function");
+      if ($title) {
+        $element->strong($title);
+      }
+      $element->span($text);
+      return $element;
+    }
   }
 }

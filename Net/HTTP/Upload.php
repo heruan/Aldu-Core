@@ -22,5 +22,40 @@ use Aldu\Core\Net;
 
 class Upload extends Net\HTTP
 {
-  
+  public function maxUploadSize($unit = 'b')
+  {
+    $max = min(array(
+        $this->bytes(ini_get('upload_max_filesize')),
+        $this->bytes(ini_get('post_max_size')),
+        $this->bytes(ini_get('memory_limit'))
+    ));
+    switch ($unit) {
+      case 'm':
+        return $max / (1024 * 1024);
+      case 'k':
+        return $max / 1024;
+      default:
+        return $max;
+    }
+  }
+
+  public function merge($files = array(), $data = array())
+  {
+    foreach ($files as $class => $fileinfo) {
+      if (!isset($data[$class])) {
+        $data[$class] = array();
+      }
+      foreach ($fileinfo['tmp_name'] as $key => $values) {
+        foreach ($values as $attribute => $uploadpath) {
+          if (!isset($data[$class][$key])) {
+            $data[$class][$key] = array();
+          }
+          if (is_uploaded_file($uploadpath)) {
+            $data[$class][$key][$attribute] = file_get_contents($uploadpath);
+          }
+        }
+      }
+    }
+    return $data;
+  }
 }

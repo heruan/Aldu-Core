@@ -31,6 +31,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   const DATETIME_FORMAT = 'Y-m-d H:i:s';
   const INDEX_TABLE = '_index';
   protected static $configuration = array(__CLASS__ => array(
+    'encryption' => 'md5',
     'debug' => array(
       'all' => false, 'read' => false
     ), 'revisions' => false
@@ -278,6 +279,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       // TODO array_diff multiple attributes
       $queries = array();
       $query = "CREATE TABLE IF NOT EXISTS `$table` (\n\t";
+      $query .= $this->createQuery($class, 'id');
       $extensions = $keys = $fkeys = array();
       foreach ($class::cfg('extensions') as $extName => $ext) {
         $extensions[$extName]['ref'] = $this->tableName($ext['ref']);
@@ -288,6 +290,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         }
       }
       foreach (array_keys($columns) as $column) {
+        if ($column === 'id') {
+          continue;
+        }
         if (($type = $class::cfg("attributes.$column.type"))
           && is_subclass_of($type, 'Aldu\Core\Model')) {
           $refTable = ($class === $type) ? $table : $this->tableName($type);
@@ -415,7 +420,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     return false;
   }
 
-  protected function denormalizeValue(&$value, $attribute)
+  protected function denormalizeValue(&$value, $attribute, $class = null)
   {
     if ($value instanceof Core\Model) {
       if (!$value->id) {
@@ -432,13 +437,16 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     elseif (is_array($value)) {
       $value = implode(',', $value);
     }
+    if ($class && $class::cfg("attributes.$attribute.encrypt")) {
+      $value = $this->encrypt($value);
+    }
     return $value;
   }
 
-  protected function denormalizeArray(&$array)
+  protected function denormalizeArray(&$array, $class = null)
   {
     foreach ($array as $attribute => &$value) {
-      $this->denormalizeValue($value, $attribute);
+      $this->denormalizeValue($value, $attribute, $class);
     }
   }
 
@@ -834,7 +842,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $model->updated = new DateTime();
       }
       $fields = $model->__toArray();
-      $this->denormalizeArray($fields);
+      $this->denormalizeArray($fields, $class);
       foreach ($tables as $table) {
         $values = array_intersect_key($fields,
           array_flip($this->columns($table)));
@@ -876,7 +884,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     }
     $this->link->commit();
     $this->link->autocommit(true);
-    return true;
+    return $model;
   }
 
   public function delete($model)
@@ -1227,22 +1235,11 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $this->query("DELIMITER ;");
   }
 
-  public function authenticate($class, $id, $password, $idKey, $pwKey, $pwEnc)
+  public function authenticate($class, $id, $password, $idKey, $pwKey)
   {
     $model = null;
-    switch ($pwEnc) {
-    case "ssha":
-      for ($i = 1; $i <= 10; $i++) {
-        $salt .= substr("0123456789abcdef", rand(0, 15), 1);
-      }
-      $ssha = "{SSHA}"
-        . base64_encode(pack("H*", sha1($password . $salt)) . $salt);
-      $password = $ssha;
-      break;
-    case "md5":
-    default:
-      $md5 = "{MD5}" . base64_encode(pack("H*", md5($password)));
-      $password = $md5;
+    if ($class::cfg("attributes.$pwKey.encrypt")) {
+      $this->encrypt($password);
     }
     $model = $this
       ->first($class,

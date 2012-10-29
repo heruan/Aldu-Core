@@ -76,10 +76,16 @@ class HTML extends DOM\Node
 
   public function addClass($class)
   {
-    $classes = explode(' ', $this->class);
+    $classes = preg_split('/\s+/', $this->class);
     $classes[] = $class;
     $this->class = implode(' ', array_filter(array_unique($classes)));
     return $this;
+  }
+
+  public function hasClass($class)
+  {
+    $classes = preg_split('/\s+/', $this->class);
+    return in_array($class, $classes);
   }
 
   public function data($name, $value = null)

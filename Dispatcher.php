@@ -26,9 +26,15 @@ class Dispatcher extends Event\Listener
   public $response;
   public $cache;
 
+  protected function initialize()
+  {
+    Exception::initialize();
+  }
+
   public function __construct(HTTP\Request $request, HTTP\Response $response = null)
   {
     parent::__construct();
+    $this->initialize();
     $this->request = $request;
     $this->request->initialize();
     $this->response = $response ? : new HTTP\Response($this->request);
@@ -73,12 +79,12 @@ class Dispatcher extends Event\Listener
       }
       $this->response->header('X-Aldu-Cached', 'no');
       $this->trigger('afterRouting');
+      $locale = Locale::instance();
       switch ($status = $this->response->status()) {
-      case 401:
       case 404:
         $page = new View\Helper\HTML\Page();
         $page->theme();
-        $this->response->message($status, LOG_NOTICE);
+        $this->response->message($locale->t("Page not found."), LOG_WARNING);
         $this->response->body($page->compose());
         break;
       }

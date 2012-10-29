@@ -196,7 +196,7 @@ class Response extends Net\HTTP
   protected $_messages = array();
 
   protected $request;
-  
+
   public $session;
 
   public function __construct($request)
@@ -722,7 +722,7 @@ class Response extends Net\HTTP
     if (!is_integer($time)) {
       $time = strtotime($time);
     }
-    $since = $since ? strtotime($since) : time();
+    $since = $since ? $since : time();
     $etag = '"' . md5($this->_body) . '"';
     $this
       ->header(
@@ -767,6 +767,12 @@ class Response extends Net\HTTP
     $this
       ->header('Content-Disposition',
         'attachment; filename="' . $filename . '"');
+  }
+
+  public function inline($filename)
+  {
+    $this->header('Content-Disposition',
+        'inline; filename="' . $filename . '"');
   }
 
   /**

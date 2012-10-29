@@ -176,9 +176,9 @@ class Form extends Helper\HTML
       )
     ));
     $this->append($div);
-    $label = $title ? $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
+    $label = $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
       'for' => $id
-    )) : null;
+    ));
     switch ($type) {
     case 'radiogroup':
       $div->append($label);
@@ -238,7 +238,9 @@ class Form extends Helper\HTML
       if ($checked) {
         $element->checked = 'checked';
       }
-      $div->append($element, $label);
+      $label->addClass($type);
+      $label->prepend($element);
+      $div->append($label);
       break;
     case 'select':
       $__name = $_name;

@@ -33,8 +33,8 @@ class Router extends Stub
         'action' => array(
           'path' => '%controller/%action/%arg:*', 'arguments' => array()
         ),
-        'view' => array(
-          'path' => '%controller/%arg/%action:?', 'action' => 'view',
+        'read' => array(
+          'path' => '%controller/%arg/%action:?/%arg:*', 'action' => 'read',
           'arguments' => array()
         ),
         'browse' => array(

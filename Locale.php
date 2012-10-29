@@ -17,21 +17,42 @@
  */
 
 namespace Aldu\Core;
-use Aldu\Core\Utility\Inflector;
 
 class Locale extends Stub
 {
+  public $default;
+  public $current;
+
+  protected static $configuration = array(__CLASS__ => array(
+    'default' => array(
+      'id' => 1,
+      'name' => 'en-us',
+      'title' => 'English (United States)'
+    )
+  ));
+
+  public function __construct($locale = null)
+  {
+    parent::__construct();
+    $this->default = new Locale\Models\Locale(static::cfg('default'));
+    $this->default->locale = $this->default;
+    $this->current = $locale ? : $this->default;
+  }
+
   public function t()
   {
     $args = func_get_args();
     $text = array_shift($args);
-    $matches = array();
-    preg_match_all('/\{(.+):(\w+)\}/', $text, $matches);
-    $matches[0] = array_map(function($pattern) { return "/$pattern/"; }, $matches[0]);
-    $text = preg_replace($matches[0], $matches[1], $text);
-    foreach ($matches[2] as $i => $inflection) {
-      $args[$i] = Inflector::$inflection($args[$i]);
+    //return vsprintf(_($text), $args);
+    $attributes = array('msgid' => $text, 'locale' => $this->current);
+    $message = new Locale\Models\Message($attributes);
+    if ($msg = Locale\Models\Message::first($attributes)) {
+      $message = $msg;
     }
-    return vsprintf(_($text), $args);
+    else {
+      $message->msgstr = $text;
+      $message->save();
+    }
+    return vsprintf($message->msgstr, $args);
   }
 }

@@ -181,7 +181,7 @@ class Controller extends Event\Listener
             ->message(
               $this->view->locale
                 ->t('%s %s successfully %s.', $model->name(), $model->id,
-                  Inflector::pastParticiple($action)));
+                  $this->view->locale->t(Inflector::pastParticiple($action))));
           foreach ($tags as $type => $tagArray) {
             foreach ($tagArray as $tag) {
               extract($tag);
@@ -211,7 +211,7 @@ class Controller extends Event\Listener
           }
         }
         else {
-          $this->response->message($this->view->locale->t('Cannot %s %s.', $action, $model->name()), LOG_ERR);
+          $this->response->message($this->view->locale->t('Cannot %s %s.', $this->view->locale->t($action), $model->name()), LOG_ERR);
         }
       }
     }

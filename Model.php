@@ -19,6 +19,8 @@
  */
 
 namespace Aldu\Core;
+use Aldu\Core\Utility\ClassLoader;
+use Aldu\Core\Utility\Inflector;
 
 class Model extends Stub
 {
@@ -119,6 +121,54 @@ class Model extends Stub
       }
     }
     return $configuration;
+  }
+
+  public static function controller()
+  {
+    $self = get_called_class();
+    $parts = explode(NS, $self);
+    $class = array_pop($parts);
+    array_pop($parts);
+    $ns = implode(NS, $parts);
+    $Controllers = array(
+      $ns . NS . 'Controllers' . NS . $class
+    );
+    foreach (class_parents($self) as $model) {
+      if (isset($model::$Controller)) {
+        $Controllers[] = $model::$Controller;
+      }
+    }
+    foreach ($Controllers as $Controller) {
+      if (ClassLoader::classExists($Controller)) {
+        $self::$Controller = $Controller;
+        break;
+      }
+    }
+    return new $self::$Controller();
+  }
+
+  public static function view()
+  {
+    $self = get_called_class();
+    $parts = explode(NS, $self);
+    $class = array_pop($parts);
+    array_pop($parts);
+    $ns = implode(NS, $parts);
+    $Views = array(
+        $ns . NS . 'Views' . NS . $class
+    );
+    foreach (class_parents($self) as $model) {
+      if (isset($model::$View)) {
+        $Views[] = $model::$View;
+      }
+    }
+    foreach ($Views as $View) {
+      if (ClassLoader::classExists($View)) {
+        $self::$View = $View;
+        break;
+      }
+    }
+    return new $self::$View($self);
   }
 
   public static function instance($id = 0, $model = null)
@@ -255,7 +305,10 @@ class Model extends Stub
       return array_filter($return, array(get_called_class(), 'authorize'));
     }
     elseif (is_object($return)) {
-      return static::authorize($return) ? $return : null;
+      if (!static::authorize($return)) {
+        return false;
+      }
+      return $return;
     }
     return $return;
   }
@@ -266,13 +319,21 @@ class Model extends Stub
     return $model->authorized($request->aro);
   }
 
-  public static function name()
+  public static function name($inflection = null)
   {
+    $locale = Locale::instance();
     if (!$name = static::cfg('name')) {
       $name = explode(NS, get_called_class());
       $name = array_pop($name);
     }
-    return $name;
+    switch ($inflection) {
+      case 'p':
+      case 'plural':
+      case 'pluralize':
+        $name = Inflector::pluralize($name);
+        break;
+    }
+    return $locale->t($name);
   }
 
   public function label()

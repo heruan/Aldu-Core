@@ -39,7 +39,8 @@ class View extends Stub
     'shortcuts' => array(
       'static' => array(
         'browse' => array(
-          'title' => "Browse {%s:pluralize}",
+          'title' => "Browse %s",
+          'inflection' => 'plural',
           'attributes' => array(
             'data-icon' => 'grid'
            )
@@ -61,14 +62,15 @@ class View extends Stub
     )
   ));
 
-  public function __construct(Model $model, HTTP\Request $request = null, HTTP\Response $response = null)
+  public function __construct($model, HTTP\Request $request = null, HTTP\Response $response = null)
   {
     parent::__construct();
-    $this->model = $model;
+    $this->model = is_object($model) ? $model : new $model();
     $this->locale = Locale::instance();
     $this->router = Router::instance();
     $this->request = $request ?: HTTP\Request::instance();
     $this->response = $response ?: HTTP\Response::instance();
+    $this->render = $this->request->query('render');
   }
 
   public function select($form, $name, $_ = array())
@@ -122,19 +124,17 @@ class View extends Stub
     foreach ($fields as $field => $options) {
       if (is_numeric($field)) {
         $field = $options;
-        $title = ucfirst($field);
         $options = array();
       }
       extract(array_merge(array(
-        'title' => ucfirst($field),
+        'title' => $this->locale->t(ucfirst($field)),
         'type' => $this->model->cfg("attributes.$field.type") ? : 'text',
         'attributes' => array()
         ), $options));
       switch ($type) {
       case is_subclass_of($type, 'Aldu\Core\Model'):
-        $this->select($form, $field, array(
-          'title' => $title,
-          'model' => $type
+        $type::view()->select($form, $field, array(
+          'title' => $title
         ));
         break;
       case 'bool':
@@ -169,14 +169,18 @@ class View extends Stub
         'attributes' => array(),
         'relation' => array()
         ), $relation), EXTR_PREFIX_ALL, 'rel');
-        $rel_title = $rel_title ?: Inflector::pluralize($rel_model::name());
+        $rel_title = $rel_title ?: $rel_model::name('plural');
         if (ClassLoader::classExists($rel_model)) {
           if ($rel_fieldset) {
-            $form->fieldset($rel_model, array(
+            $rel_fieldset = array_merge(array(
               'title' => $rel_title,
-              'attributes' => array(
+              'attributes' => array()
+            ), (array) $rel_fieldset);
+            $form->fieldset($rel_model, array(
+              'title' => $rel_fieldset['title'],
+              'attributes' => array_merge(array(
                 'data-role' => 'collapsible'
-              )
+              ), $rel_fieldset['attributes'])
             ));
           }
           if ($rel_type === 'select') {
@@ -187,8 +191,7 @@ class View extends Stub
                 }
               }
             }
-            $this->select($form, $rel_model, array(
-                'model' => $rel_model,
+            $rel_model::view()->select($form, $rel_model, array(
                 'title' => $rel_title,
                 'attributes' => $rel_attributes,
                 'relation' => array('type' => $rel)
@@ -293,7 +296,7 @@ class View extends Stub
     $ul = new Helper\HTML('ul.aldu-core-view-listview');
     foreach ($models as $model) {
       $li = $ul->li();
-      $li->a($model->id);
+      $li->a($model->id)->href = $model->url();
     }
     return $ul;
   }
@@ -313,7 +316,7 @@ class View extends Stub
     default:
       $page = new Helper\HTML\Page();
       $page->theme();
-      $page->title($this->locale->t('Browse %s', Inflector::pluralize($this->model->name())));
+      $page->title($this->locale->t('Browse %s', $this->model->name('plural')));
       $table = $this->listview($models);
       return $this->response->body($page->compose($table));
     }
@@ -365,12 +368,13 @@ class View extends Stub
       foreach (static::cfg('shortcuts.static') as $action => $options) {
         extract(array_merge(array(
           'title' => null,
+          'inflection' => null,
           'attributes' => array()
         ), $options));
         if ($route->controller->model->authorized($router->request->aro, $action)) {
           $href = $route->controller->model->url($action);
           $li = $ul->li();
-          $li->a($locale->t($title, $route->controller->model->name()), $attributes)->href = $href;
+          $li->a($locale->t($title, $route->controller->model->name($inflection)), $attributes)->href = $href;
           if ($href === $router->basePath) {
             $li->addClass('active');
           }
@@ -381,12 +385,13 @@ class View extends Stub
         foreach (static::cfg('shortcuts.model') as $action => $options) {
           extract(array_merge(array(
           'title' => null,
+          'inflection' => null,
           'attributes' => array()
           ), $options));
           if ($model->authorized($router->request->aro, $action)) {
             $href = $model->url($action);
             $li = $ul->li();
-            $li->a($locale->t($title, $model->name(), $model->id), $attributes)->href = $href;
+            $li->a($locale->t($title, $model->name($inflection), $model->id), $attributes)->href = $href;
             if ($href === $router->basePath) {
               $li->addClass('active');
             }

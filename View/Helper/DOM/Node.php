@@ -104,7 +104,7 @@ class Node extends Helper\DOM implements Iterator, Countable
         return new self($this->document, $this->node->parentNode);
       default:
         if ($this->node instanceof NodeList) {
-          return $this->node->length ? $this->node->item(0)->getAttribute($name) : null;
+          return $this->node->item(0) ? $this->node->item(0)->getAttribute($name) : null;
         }
         return $this->node->getAttribute($name);
     }
