@@ -119,6 +119,7 @@ class Controller extends Event\Listener
 
   protected function post($action, $data = array())
   {
+    $models = array();
     foreach ($data as $class => $array) {
       if (!ClassLoader::classExists($class)) {
         continue;
@@ -179,6 +180,10 @@ class Controller extends Event\Listener
           }
         }
         if ($model->save()) {
+          if (!isset($models[$class])) {
+            $models[$class] = array();
+          }
+          $models[$class][$index] = $model;
           $this->response->message($this->view->locale->t('%s %s successfully %s.', $model->name(), $model->id, $this->view->locale->t(Inflector::pastParticiple($action))));
           foreach ($tags as $type => $tagArray) {
             foreach ($tagArray as $tag) {

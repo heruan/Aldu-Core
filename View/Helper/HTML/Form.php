@@ -449,6 +449,11 @@ class Form extends Helper\HTML
     }
     $element->form = $this->id;
     $element->addClass("aldu-core-view-helper-html-form-$type");
+    $element->data(array(
+      'model' => get_class($this->model),
+      'index' => $this->currentIndex(),
+      'name' => $name
+    ));
     $this->elements[$name] = $div;
     return $div;
   }

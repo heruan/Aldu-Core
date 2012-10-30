@@ -52,7 +52,9 @@ class View extends Stub
           )
         ),
         'model' => array(
-          //'read' => array('title' => "Read %s %s"),
+          'read' => array(
+            'title' => "Read %s %s"
+          ),
           'edit' => array(
             'title' => "Edit %s %s"
           ),
@@ -254,7 +256,7 @@ class View extends Stub
     extract(array_merge(array(
       'actions' => static::cfg('table.actions'),
       'headers' => static::cfg('table.headers'),
-      'columns' => static::cfg('table.columns') ? 
+      'columns' => static::cfg('table.columns') ?
         : array_combine(array_keys($this->model->__toArray()), array_keys($this->model->__toArray()))
     ), $_));
     foreach ($columns as $name => $title) {
@@ -324,6 +326,9 @@ class View extends Stub
       }
       $this->response->type('json');
       return $this->response->body(json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    case 'embed':
+      $embed = $this->listview($models);
+      return $this->response->body($embed);
     case 'page':
     default:
       $page = new Helper\HTML\Page();
@@ -354,12 +359,14 @@ class View extends Stub
 
   public function add()
   {
+    $form = $this->form($this->model, __FUNCTION__);
     switch ($this->render) {
+    case 'embed':
+      return $this->response->body($form);
     case 'page':
     default:
       $page = new Helper\HTML\Page();
       $page->title($this->locale->t('Add new %s', $this->model->name()));
-      $form = $this->form($this->model, __FUNCTION__);
       $form->submit();
       return $this->response->body($page->compose($form));
     }
