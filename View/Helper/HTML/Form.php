@@ -185,9 +185,9 @@ class Form extends Helper\HTML
       )))
     ));
     $this->append($div);
-    $label = $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
+    $label = $title ? $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
       'for' => $id
-    ));
+    )) : null;
     switch ($type) {
     case 'radiogroup':
       $div->append($label);

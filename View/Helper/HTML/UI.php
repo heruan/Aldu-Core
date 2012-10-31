@@ -40,7 +40,7 @@ class UI extends Helper\HTML
     $engine = $engine ? : $this->engine;
     switch ($engine) {
     case 'bootstrap':
-    // aldu-ui-container
+      // aldu-ui-container
       $node->node('.aldu-ui-container')->addClass('container');
       // aldu-ui-toolbar
       $toolbar = $node->node('.aldu-ui-toolbar')->addClass('navbar');
@@ -48,11 +48,8 @@ class UI extends Helper\HTML
       $node->node('.aldu-ui-toolbar.bottom')->addClass('navbar-fixed-bottom');
       $toolbar->node('.aldu-ui-toolbar-menu')->addClass('navbar-inner');
       $toolbar->node('.aldu-ui-toolbar-menu .menu')->addClass('nav');
-      $toolbar->node('.aldu-ui-toolbar-drawer')->addClass('btn-toolbar');
-      $toolbar->node('.aldu-ui-toolbar-drawer ul')->addClass('btn-group');
-      $toolbar->node('.aldu-ui-toolbar-drawer ul li')->addClass('btn');
       $toolbar->node('.aldu-ui-home')->addClass('brand');
-      $toolbar->node('.aldu-core-view-shortcuts');
+      $node->node('.aldu-ui-toolbar-drawer ul')->addClass('nav nav-tabs');
       // aldu-ui-float
       $node->node('.aldu-ui-float-left')->addClass('pull-left');
       $node->node('.aldu-ui-float-right')->addClass('pull-right');
@@ -134,7 +131,7 @@ class UI extends Helper\HTML
         );
       $element = $this->document->create("div.aldu-core-view-helper-html-ui-message.$function");
       if ($title) {
-        $element->strong($title);
+        $element->strong($title . ' ');
       }
       $element->span($text);
       return $element;

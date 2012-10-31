@@ -214,7 +214,6 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       'other' => null,
       'null' => true,
       'default' => null,
-      'increment' => null
     ), $options));
     if (is_array($default)) {
       $default = implode(",", array_map('var_export', $default, array_fill(0, count($default), true)));
@@ -228,16 +227,12 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       return "`$column` SET("
         . implode(",", array_map('var_export', $type, array_fill(0, count($type), true))) . ") $null $default,\n\t";
     }
-    switch ($increment) {
-    case 'auto':
-      $increment = 'AUTO_INCREMENT';
-      break;
-    default:
-      $increment = '';
+    if ($column === 'id') {
+      $default = 'AUTO_INCREMENT';
     }
     switch ($type) {
     case 'int':
-      return "`$column` INT $other $null $default $increment,\n\t";
+      return "`$column` INT $other $null $default,\n\t";
     case 'float':
       return "`$column` FLOAT $other $null $default,\n\t";
     case 'text':
@@ -421,10 +416,12 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 
   protected function denormalizeValue(&$value, $attribute, $class = null)
   {
+    var_dump($attribute);
     if ($value instanceof Core\Model) {
-      if (!$value->id) {
-        $value->save();
-      }
+      //if (!$value->id) {
+      //  $value->save();
+      //}
+      $this->save($value);
       $value = (int) $value->id;
     }
     elseif ($value instanceof DateTime) {

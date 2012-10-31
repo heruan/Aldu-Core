@@ -87,8 +87,7 @@ class Model extends Stub
     'id' => array(
       'type' => 'int',
       'null' => false,
-      'other' => 'unsigned',
-      'increment' => 'auto'
+      'other' => 'unsigned'
     ),
     'acl' => array(
       'type' => array(
@@ -244,10 +243,10 @@ class Model extends Stub
           'id' => $attribute->id
         );
       }
-      elseif ($attribute instanceof DateTime) {
+      elseif ($safe && $attribute instanceof DateTime) {
         $attribute = $attribute->format(ALDU_DATETIME_FORMAT);
       }
-      elseif ($attribute instanceof self) {
+      elseif ($safe && $attribute instanceof self) {
         $attribute = $attribute->id;
       }
       $array[$name] = $attribute;

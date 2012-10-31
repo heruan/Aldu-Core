@@ -83,6 +83,7 @@ class View extends Stub
       'placeholder' => true,
       'title' => '',
       'description' => '',
+      'add' => true,
       'required' => false,
       'value' => null,
       'model' => $this->model,
@@ -103,7 +104,7 @@ class View extends Stub
     $select = $form->select($name, array_merge($_, array(
       'options' => $models
     )));
-    if ($required && empty($models)) {
+    if ($add && $required && empty($models)) {
       $select->append('a', $this->locale->t('Add new'), array(
         'href' => $model->url('add')
       ));
@@ -120,6 +121,47 @@ class View extends Stub
     return $select;
   }
 
+  public function formElement($form, $field, $options = array())
+  {
+    if (is_numeric($field)) {
+      $field = $options;
+      $options = array();
+    }
+    extract(array_merge(array(
+      'title' => $this->locale->t(ucfirst($field)),
+      'type' => $this->model->cfg("attributes.$field.type") ? : 'text',
+      'attributes' => array()
+    ), $options));
+    switch ($type) {
+    case is_subclass_of($type, 'Aldu\Core\Model'):
+      $element = $type::view()->select($form, $field, array(
+        'title' => $title
+      ));
+      break;
+    case 'bool':
+    case 'boolean':
+      $element = $form->checkbox($field, array(
+        'title' => $title
+      ));
+      break;
+    case is_array($type):
+      $element = $form->select($field, array(
+        'title' => $title,
+        'options' => array_combine($type, $type),
+        'attributes' => array(
+          'multiple' => true
+        )
+      ));
+      break;
+    default:
+      $element = $form->$type($field, array(
+        'title' => $title,
+        'attributes' => $attributes
+      ));
+    }
+    return $element;
+  }
+
   public function form($model, $action, $options = array())
   {
     $class = get_class($model);
@@ -127,42 +169,7 @@ class View extends Stub
     $form->hidden('id');
     $fields = static::cfg('form.fields') ? : array_keys($model->__toArray());
     foreach ($fields as $field => $options) {
-      if (is_numeric($field)) {
-        $field = $options;
-        $options = array();
-      }
-      extract(array_merge(array(
-        'title' => $this->locale->t(ucfirst($field)),
-        'type' => $this->model->cfg("attributes.$field.type") ? : 'text',
-        'attributes' => array()
-      ), $options));
-      switch ($type) {
-      case is_subclass_of($type, 'Aldu\Core\Model'):
-        $type::view()->select($form, $field, array(
-          'title' => $title
-        ));
-        break;
-      case 'bool':
-      case 'boolean':
-        $form->checkbox($field, array(
-          'title' => $title
-        ));
-        break;
-      case is_array($type):
-        $form->select($field, array(
-          'title' => $title,
-          'options' => array_combine($type, $type),
-          'attributes' => array(
-            'multiple' => true
-          )
-        ));
-        break;
-      default:
-        $form->$type($field, array(
-          'title' => $title,
-          'attributes' => $attributes
-        ));
-      }
+      $this->formElement($form, $field, $options);
     }
     foreach (array(
       'has',
@@ -256,7 +263,7 @@ class View extends Stub
     extract(array_merge(array(
       'actions' => static::cfg('table.actions'),
       'headers' => static::cfg('table.headers'),
-      'columns' => static::cfg('table.columns') ?
+      'columns' => static::cfg('table.columns') ? 
         : array_combine(array_keys($this->model->__toArray()), array_keys($this->model->__toArray()))
     ), $_));
     foreach ($columns as $name => $title) {
@@ -359,14 +366,15 @@ class View extends Stub
 
   public function add()
   {
-    $form = $this->form($this->model, __FUNCTION__);
     switch ($this->render) {
     case 'embed':
+      $form = $this->form($this->model, __FUNCTION__);
       return $this->response->body($form);
     case 'page':
     default:
       $page = new Helper\HTML\Page();
       $page->title($this->locale->t('Add new %s', $this->model->name()));
+      $form = $this->form($this->model, __FUNCTION__);
       $form->submit();
       return $this->response->body($page->compose($form));
     }
