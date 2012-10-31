@@ -81,6 +81,12 @@ class Dispatcher extends Event\Listener
       $this->trigger('afterRouting');
       $locale = Locale::instance();
       switch ($status = $this->response->status()) {
+      case 401:
+        $page = new View\Helper\HTML\Page();
+        $page->theme();
+        $this->response->message($locale->t("Unauthorized."), LOG_WARNING);
+        $this->response->body($page->compose());
+        break;
       case 404:
         $page = new View\Helper\HTML\Page();
         $page->theme();

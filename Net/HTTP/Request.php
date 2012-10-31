@@ -300,7 +300,7 @@ class Request extends Net\HTTP
     $this->fullBase = $this->_base($this->resource, true);
     $this->path = $this->_path($this->resource, $this->base);
     $this->agent = $this->header('User-Agent');
-    $this->time = microtime(true);//static::env('REQUEST_TIME') ? : time();
+    $this->time = microtime(true); //static::env('REQUEST_TIME') ? : microtime(true);
     $this->id = $this->_id();
   }
 
@@ -330,7 +330,7 @@ class Request extends Net\HTTP
       $index = basename(static::env('SCRIPT_NAME'));
       $base = substr(static::env('SCRIPT_NAME'), 0, -strlen($index));
     }
-    return $base;
+    return rtrim($base, '/');
   }
 
   protected function _path($uri, $base)
@@ -347,7 +347,7 @@ class Request extends Net\HTTP
       }
       $path = $uri;
     }
-    return trim($path, '/');
+    return rtrim($path, '/');
   }
 
   protected function _url()

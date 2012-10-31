@@ -61,7 +61,7 @@ class NodeList extends Helper\DOM implements Iterator
     if ($this->nodes instanceof DOMNodeList) {
       return $this->nodes->item($index);
     }
-    return $this->nodes[$index];
+    return isset($this->nodes[$index]) ? $this->nodes[$index] : false;
   }
 
   public function rewind()

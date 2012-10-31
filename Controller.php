@@ -173,8 +173,12 @@ class Controller extends Event\Listener
                 $value = $$type;
               }
             }
-            elseif ($type === 'datetime') {
-              $value = DateTime::createFromFormat(ALDU_DATETIME_FORMAT, $value);
+            else {
+              switch ($type) {
+              case 'datetime':
+                $value = DateTime::createFromFormat(DateTime::W3C, $value);
+                break;
+              }
             }
             $model->$attribute = $value;
           }

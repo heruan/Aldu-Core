@@ -68,7 +68,7 @@ class MongoDB extends Datasource\Driver implements DriverInterface
       $class = get_class($model);
       $collection = $this->collection($model);
       $ids = $this->mongoId($model);
-      $doc = $model->__toArray();
+      $doc = get_object_vars($model);
       $this->denormalizeArray($doc);
       foreach ($ids as $id) {
         $doc['_id'] = $id;

@@ -96,7 +96,7 @@ class Form extends Helper\HTML
     else {
       $this->indexes[$modelClass] = 0;
     }
-    $this->values = $this->model->__toArray();
+    $this->values = get_object_vars($this->model);
     $index = $this->currentIndex();
     if ($this->request->is('post')) {
       $data = $this->request->data($modelClass);
@@ -144,6 +144,15 @@ class Form extends Helper\HTML
       $value = $value->format(ALDU_DATETIME_FORMAT);
     }
   }
+  
+  public function group($options)
+  {
+    $group = $this->form->append('div.aldu-core-view-helper-html-form-element');
+    $group->label($options['title']);
+    $controls = $group->append('div.aldu-core-view-helper-html-form-controls controls-row');
+    call_user_func_array(array($controls, 'append'), $options['controls']);
+    return $group;
+  }
 
   public function __call($type, $arguments)
   {
@@ -156,13 +165,15 @@ class Form extends Helper\HTML
     $_ = array_merge(array(
       'title' => '',
       'description' => '',
+      'hint' => '',
       'attributes' => array(),
       'options' => array(),
       'required' => false,
       'readonly' => $readonly,
       'value' => array_key_exists($name, $this->values) ? $this->values[$name] : false,
       'relation' => array(),
-      'redirect' => false
+      'redirect' => false,
+      'render' => 'group'
     ), $_);
     extract($_);
     $this->normalizeValue($value);
@@ -175,7 +186,7 @@ class Form extends Helper\HTML
     }
     $id = uniqid(Inflector::slug($name));
     $_name = $modelClass . '[' . $this->indexes[$modelClass] . '][' . $name . ']';
-    $div = $this->create('div', array(
+    $group = $this->create('div', array(
       'title' => $description,
       'data-name' => $name,
       'class' => implode(' ', array_filter(array(
@@ -184,17 +195,17 @@ class Form extends Helper\HTML
         $required ? "aldu-core-view-helper-html-form-required" : null
       )))
     ));
-    $this->append($div);
-    $label = $title ? $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
+    $controls = $this->create('div.aldu-core-view-helper-html-form-controls');
+    $label = $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
       'for' => $id
-    )) : null;
+    ));
     switch ($type) {
     case 'radiogroup':
-      $div->append($label);
       foreach ($options as $option) {
-        $div->append($this->radio($name, $option));
+        $controls->append($this->radio($name, $option));
       }
-      return $div;
+      $group->append($label, $controls);
+      break;
     case 'radio':
     case 'checkbox':
       if ($relation) {
@@ -228,7 +239,7 @@ class Form extends Helper\HTML
         $checked = true;
       }
       if ($checked) {
-        $div->append($this->create('input', array(
+        $controls->append($this->create('input', array(
           'form' => $this->id,
           'name' => $_name,
           'type' => 'hidden',
@@ -246,7 +257,8 @@ class Form extends Helper\HTML
       }
       $label->addClass($type);
       $label->prepend($element);
-      $div->append($label);
+      $controls->append($label);
+      $group->append($controls);
       break;
     case 'select':
       $__name = $_name;
@@ -265,6 +277,12 @@ class Form extends Helper\HTML
         'id' => $id,
         'name' => $_name
       )));
+      if ($hint) {
+        $element->option($hint);
+      }
+      if (!$required) {
+        $element->option($this->locale->t("None"));
+      }
       foreach ($options as $_value => $_label) {
         if (is_array($_label)) {
           $optgroup = $element->append('optgroup', array(
@@ -302,7 +320,7 @@ class Form extends Helper\HTML
             }
           }
           if (isset($option->selected)) {
-            $div->append($this->create('input', array(
+            $group->append($this->create('input', array(
               'form' => $this->id,
               'name' => $__name . "[$_value]",
               'type' => 'hidden',
@@ -311,15 +329,14 @@ class Form extends Helper\HTML
           }
         }
       }
-      $div->append($label, $element);
+      $group->append($label, $controls->append($element));
       break;
     case 'fieldset':
-      $attributes['name'] = $_name;
       $element = $this->create('fieldset', $attributes);
-      if ($title)
+      if ($title) {
         $element->append('legend', $title);
-      $div->append($element);
-      break;
+      }
+      return $element;
     case 'datalist':
       $attributes['id'] = $id;
       $attributes['name'] = $_name;
@@ -327,7 +344,7 @@ class Form extends Helper\HTML
       foreach ($options as $field => $label) {
         $element->option($label)->value = $field;
       }
-      $div->append($element);
+      $group->append($element);
       break;
     case 'submit':
       $element = $this->create('button', $title ? : $this->locale->t('Submit'), array_merge($attributes, array(
@@ -335,24 +352,25 @@ class Form extends Helper\HTML
         'type' => $type,
         'value' => $this->currentIndex()
       )));
-      $div->append($element);
+      $actions = $this->create('div.aldu-core-view-helper-html-form-actions');
+      $group->append($actions->append($element));
       if ($redirect) {
-        $div->append('span.margin')->text($this->locale->t('and'));
+        $group->append('span.margin')->text($this->locale->t('and'));
         $model = $this->model;
         $index = $this->currentIndex();
         $this->setModel(false);
-        $div->append($this->radio('redirect', array(
+        $group->append($this->radio('redirect', array(
           'title' => $this->locale->t('Go back to the previous page'),
           'attributes' => array(
             'checked' => true
           ),
           'value' => $this->request->referer ? : $this->request->base . $this->request->path
         )));
-        $div->append($this->radio('redirect', array(
+        $group->append($this->radio('redirect', array(
           'title' => $this->locale->t('Come back to this page'),
           'value' => $this->request->base . $this->request->path
         )));
-        $div->append($this->radio('redirect', array(
+        $group->append($this->radio('redirect', array(
           'title' => $this->locale->t('View this %s', $model->name()),
           'value' => ''
         )));
@@ -364,16 +382,17 @@ class Form extends Helper\HTML
         'name' => $name,
         'value' => $value
       )));
-      $div->append($element);
+      $group->append($element);
       break;
     case 'textarea':
       $element = $this->create('textarea', $value ? : null, array_merge($attributes, array(
         'id' => $id,
         'name' => $_name
       )));
-      if ($description)
+      if ($description) {
         $element->placeholder = $description;
-      $div->append($label, $element);
+      }
+      $group->append($label, $controls->append($element));
       break;
     case 'file':
       $this->form->enctype = 'multipart/form-data';
@@ -398,14 +417,9 @@ class Form extends Helper\HTML
         'name' => $_name,
         'type' => $type
       )));
-      $div->append($label, $thumb, $element);
+      $group->append($label, $controls->append($thumb, $element));
       break;
     case 'hidden':
-      $div->remove();
-    case 'text':
-    case 'password':
-    default:
-      $div->addClass('aldu-core-view-helper-html-form-input');
       $element = $this->create('input', array_merge($attributes, array(
         'id' => $id,
         'name' => $_name,
@@ -413,15 +427,24 @@ class Form extends Helper\HTML
         'type' => $type,
         'value' => $value !== false ? $value : null
       )));
-      if ($description)
+      $render = 'element';
+      $this->form->append($element);
+      break;
+    case 'text':
+    case 'password':
+    default:
+      $group->addClass('aldu-core-view-helper-html-form-input');
+      $element = $this->create('input', array_merge($attributes, array(
+        'id' => $id,
+        'name' => $_name,
+        'title' => $title,
+        'type' => $type,
+        'value' => $value !== false ? $value : null
+      )));
+      if ($description) {
         $element->placeholder = $description;
-      if ($type === 'hidden') {
-        $div = $element;
-        $this->append($div);
       }
-      else {
-        $div->append($label, $element);
-      }
+      $group->append($label, $controls->append($element));
     }
     if ($required) {
       $element->required = 'required';
@@ -436,7 +459,7 @@ class Form extends Helper\HTML
       default:
         $element->readonly = 'readonly';
       }
-      $div->addClass('aldu-core-view-helper-html-form-element-readonly');
+      $group->addClass('aldu-core-view-helper-html-form-element-readonly');
     }
     foreach ($this->defaults as $attribute => $value) {
       switch ($attribute) {
@@ -454,10 +477,11 @@ class Form extends Helper\HTML
       'index' => $this->currentIndex(),
       'name' => $name
     ));
-    $this->elements[$name] = $div;
-    return $div;
+    $this->elements[$name] = $element;
+    $this->form->append($$render);
+    return $$render;
   }
-
+  
   public function confirm($node, $reason = '')
   {
     if ($input = $this->document->node('input', $node)->first()) {

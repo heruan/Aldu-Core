@@ -19,5 +19,7 @@
 namespace Aldu\Core;
 class Logger extends Stub
 {
-
+  public static function log()
+  {
+  }
 }

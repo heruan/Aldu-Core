@@ -140,15 +140,23 @@ class Document extends Helper\DOM
   {
     $this->xpath = new DOMXPath($this->document);
     $expression = self::selectorToQuery($selector);
+    $nodes = array();
     if ($context) {
       if ($context->node instanceof NodeList) {
-        $context = $context->node->item(0);
+        foreach ($context->node as $node) {
+          foreach ($this->xpath->query($expression, $node, $registerNodeNS) as $n) {
+            $nodes[] = $n;
+          }
+        }
       }
       else {
         $context = $context->node;
+        foreach ($this->xpath->query($expression, $context, $registerNodeNS) as $n) {
+          $nodes[] = $n;
+        }
       }
     }
-    return $this->xpath->query($expression, $context, $registerNodeNS);
+    return $nodes;
   }
 
   public function node($node, $context = null)
@@ -247,70 +255,6 @@ class Document extends Helper\DOM
   public function import($node)
   {
     return $this->document->importNode($node, true);
-  }
-
-  public static function selectorToQueryOld($selector)
-  {
-    $selector = (string) $selector;
-    $cssSelector = array(
-      '/\*/',
-      // *
-      '/(\w)/',
-      // E
-      '/(\w)\s+(\w)/',
-      // E F
-      '/(\w)\s*>\s*(\w)/',
-      // E > F
-      '/(\w)\s*>\s*\*/',
-      // E > *
-      '/(\w):first-child/',
-      // E:first-child
-      '/(\w)\s*:nth-child\(([0-9]+)\)/',
-      // E:nth-child(n)
-      '/(\w)\s*\+\s*(\w)/',
-      // E + F
-      '/(\w)\[([\w\-]+)\]/',
-      // E[foo]
-      '/(\w)\[([\w\-]+)\=\"(.*)\"\]/',
-      // E[foo="bar"]
-      '/(\w+)+\.([\w\-]+)+/',
-      // E.class
-      '/\.([\w\-]+)+/',
-      // .class
-      '/(\w+)+\#([\w\-]+)/',
-      // E#id
-      '/\#([\w\-]+)/' // #id
-    );
-    $xPathQuery = array(
-      '*',
-      // *
-      '\1',
-      // E
-      '\1//\2',
-      // E F
-      '\1/\2',
-      // E > F
-      '\1/*',
-      // E > *
-      '*[1]/self::\1',
-      // E:first-child
-      '\1[position() = \2]',
-      // E:nth-child(n)
-      '\1/following-sibling::*[1]/self::\2',
-      // E + F
-      '\1 [ @\2 ]',
-      // E[foo]
-      '\1[ contains( concat( " ", @\2, " " ), concat( " ", "\3", " " ) ) ]',
-      // E[foo="bar"]
-      '\1[ contains( concat( " ", @class, " " ), concat( " ", "\2", " " ) ) ]',
-      // E.class
-      '*[ contains( concat( " ", @class, " " ), concat( " ", "\1", " " ) ) ]',
-      // .class
-      '\1[ @id = "\2" ]',
-      // E#id
-      '*[ @id = "\1" ]' // #id
-    );
-    return (string) './/' . preg_replace($cssSelector, $xPathQuery, $selector);
   }
 
   /**

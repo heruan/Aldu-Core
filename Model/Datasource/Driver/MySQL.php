@@ -271,7 +271,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $this->query("INSERT INTO `" . self::INDEX_TABLE . "` VALUES ('%s', '%s')", $class, $table);
     }
     if (!$this->tableExists($table)) {
-      $columns = get_public_vars($class);
+      $columns = get_object_vars(new $class());
       // TODO array_diff multiple attributes
       $queries = array();
       $query = "CREATE TABLE IF NOT EXISTS `$table` (\n\t";
@@ -416,12 +416,13 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
 
   protected function denormalizeValue(&$value, $attribute, $class = null)
   {
-    var_dump($attribute);
     if ($value instanceof Core\Model) {
-      //if (!$value->id) {
-      //  $value->save();
-      //}
-      $this->save($value);
+      if (!$value->id) {
+        $value->save();
+      }
+      if (!$this->first(get_class($value), array('id' => $value->id))) {
+        $this->save($value);
+      }
       $value = (int) $value->id;
     }
     elseif ($value instanceof DateTime) {
@@ -783,11 +784,12 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $options = $this->options($options);
     $query = "SELECT * FROM `$table` $join WHERE $where $options";
     if (static::cfg('debug.read')) {
+      $debug = static::cfg('debug.all');
       static::cfg('debug.all', true);
     }
     $select = $this->query($query);
     if (static::cfg('debug.read')) {
-      static::cfg('debug.all', false);
+      static::cfg('debug.all', $debug);
     }
     return $select;
   }
@@ -835,7 +837,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       else {
         $model->updated = new DateTime();
       }
-      $fields = $model->__toArray();
+      $fields = get_object_vars($model);
       $this->denormalizeArray($fields, $class);
       foreach ($tables as $table) {
         $values = array_intersect_key($fields, array_flip($this->columns($table)));
@@ -863,7 +865,14 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         }
         $query = "INSERT INTO `$table` (`" . implode('`, `', $columns) . "`) VALUES ";
         $query .= "(" . implode(', ', $placeholders) . ") ON DUPLICATE KEY UPDATE " . implode(', ', $update);
+        if (static::cfg('debug.save')) {
+          $debug = static::cfg('debug.all');
+          static::cfg('debug.all', true);
+        }
         $this->query($query, $values);
+        if (static::cfg('debug.save')) {
+          static::cfg('debug.all', $debug);
+        }
         if (!$model->id) {
           $model->id = $fields['id'] = $this->link->insert_id;
         }

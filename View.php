@@ -26,6 +26,7 @@ use DateTime;
 class View extends Stub
 {
   public static $Controller;
+  public static $Model;
   public $model;
   public $render;
   public $locale;
@@ -77,14 +78,62 @@ class View extends Stub
     $this->render = $this->request->query('render');
   }
 
+  public static function controller()
+  {
+    $self = get_called_class();
+    $parts = explode(NS, $self);
+    $class = array_pop($parts);
+    array_pop($parts);
+    $ns = implode(NS, $parts);
+    $Controllers = array(
+        $ns . NS . 'Controllers' . NS . $class
+    );
+    foreach (class_parents($self) as $model) {
+      if (isset($model::$Controller)) {
+        $Controllers[] = $model::$Controller;
+      }
+    }
+    foreach ($Controllers as $Controller) {
+      if (ClassLoader::classExists($Controller)) {
+        $self::$Controller = $Controller;
+        break;
+      }
+    }
+    return new $self::$Controller();
+  }
+  
+  public static function model()
+  {
+    $self = get_called_class();
+    $parts = explode(NS, $self);
+    $class = array_pop($parts);
+    array_pop($parts);
+    $ns = implode(NS, $parts);
+    $Models = array(
+        $ns . NS . 'Models' . NS . $class
+    );
+    foreach (class_parents($self) as $view) {
+      if (isset($view::$Model)) {
+        $Models[] = $view::$Model;
+      }
+    }
+    foreach ($Models as $Model) {
+      if (ClassLoader::classExists($Model)) {
+        $self::$Model = $Model;
+        break;
+      }
+    }
+    return new $self::$Model();
+  }
+  
   public function select($form, $name, $_ = array())
   {
     $_ = array_merge(array(
-      'placeholder' => true,
       'title' => '',
       'description' => '',
       'add' => true,
       'required' => false,
+      'none' => $this->locale->t('None'),
       'value' => null,
       'model' => $this->model,
       'search' => array(),
@@ -108,15 +157,6 @@ class View extends Stub
       $select->append('a', $this->locale->t('Add new'), array(
         'href' => $model->url('add')
       ));
-    }
-    if (!$required) {
-      $select->node('select')->prepend('option')->text($this->locale->t('None'));
-    }
-    if ($placeholder) {
-      $select->node('select')->prepend('option', array(
-        'selected' => true,
-        'disabled' => true
-      ))->text($this->locale->t('Select %s', $model->name()));
     }
     return $select;
   }
@@ -167,7 +207,7 @@ class View extends Stub
     $class = get_class($model);
     $form = new Helper\HTML\Form($model, $action);
     $form->hidden('id');
-    $fields = static::cfg('form.fields') ? : array_keys($model->__toArray());
+    $fields = static::cfg('form.fields') ? : array_keys(get_object_vars($model));
     foreach ($fields as $field => $options) {
       $this->formElement($form, $field, $options);
     }
@@ -263,8 +303,7 @@ class View extends Stub
     extract(array_merge(array(
       'actions' => static::cfg('table.actions'),
       'headers' => static::cfg('table.headers'),
-      'columns' => static::cfg('table.columns') ? 
-        : array_combine(array_keys($this->model->__toArray()), array_keys($this->model->__toArray()))
+      'columns' => static::cfg('table.columns') ? : get_object_vars($this->model)
     ), $_));
     foreach ($columns as $name => $title) {
       if (is_numeric($name)) {
@@ -322,17 +361,36 @@ class View extends Stub
     return $ul;
   }
 
+  protected function toJSON($models = array(), $options = 0)
+  {
+    if (!is_array($models)) {
+      $models = array($models);
+    }
+    $array = array();
+    foreach ($models as $i => $model) {
+      $array[$i] = array();
+      foreach (get_object_vars($model) as $attribute => $value) {
+        if ($value instanceof Model) {
+          $value = array(
+            'url' => $this->router->fullPath,
+            'path' => $this->router->basePath,
+            'class' => get_class($model),
+            'id' => $model->id,
+          );
+        }
+        $array[$i][$attribute] = $value;
+      }
+    }
+    return json_encode($array, $options);
+  }
+
   public function browse($models = array())
   {
     $render = $this->request->query('render') ? : $this->render;
     switch ($render) {
     case 'json':
-      $json = array();
-      foreach ($models as $model) {
-        $json[] = $model->__toArray(true);
-      }
       $this->response->type('json');
-      return $this->response->body(json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+      return $this->response->body($this->toJSON($models, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     case 'embed':
       $embed = $this->listview($models);
       return $this->response->body($embed);

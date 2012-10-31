@@ -462,7 +462,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
     $attributes = array_map(function ($attribute) use ($class, $type)
     {
       return $class::cfg("datasource.ldap.$type.mappings.$attribute") ? : $attribute;
-    }, array_keys(get_public_vars($class)));
+    }, array_keys(get_object_vars(new $class())));
     if (static::cfg('debug.all')) {
       var_dump($filter);
     }
@@ -558,7 +558,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
       $class = get_class($model);
       $dn = $this->dn($model);
       $attributes = array();
-      foreach ($model->__toArray() as $attribute => $value) {
+      foreach (get_object_vars($model) as $attribute => $value) {
         $type = $class::cfg('datasource.ldap.type');
         if (is_object($value)) {
           ;

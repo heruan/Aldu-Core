@@ -54,12 +54,12 @@ class Page extends Helper\HTML
     parent::__construct('html', $document);
     $this->node = $this->document->root->node;
     $this->lang = $lang;
-    $this->head = $this->append('head');
-    $this->charset = $this->head->append('meta', array(
+    $this->head = $this->create('head')->appendTo($this);
+    $this->charset = $this->create('meta', array(
       'charset' => $this->document->encoding
-    ));
-    $this->title = $this->head->append('title');
-    $this->body = $this->append('body');
+    ))->appendTo($this->head);
+    $this->title = $this->create('title')->appendTo($this->head);
+    $this->body = $this->create('body')->appendTo($this);
     $this->router = Core\Router::instance();
     $this->request = Core\Net\HTTP\Request::instance();
     $this->response = Core\Net\HTTP\Response::instance();
@@ -115,9 +115,9 @@ class Page extends Helper\HTML
   public function description($description)
   {
     if (!count($node = $this->head->node('meta[name=description]'))) {
-      $node = $this->head->append('meta', array(
+      $node = $this->create('meta', array(
         'name' => 'description'
-      ));
+      ))->appendTo($this->head);
     }
     $node->content = $description;
   }
@@ -128,9 +128,9 @@ class Page extends Helper\HTML
       $keywords = implode(',', $keywords);
     }
     if (!count($node = $this->head->node('meta[name=keywords]'))) {
-      $node = $this->head->append('meta', array(
+      $node = $this->create('meta', array(
         'name' => 'keywords'
-      ));
+      ))->appendTo($this->head);
     }
     $node->content = $keywords;
   }
@@ -138,14 +138,14 @@ class Page extends Helper\HTML
   public function base($base = null)
   {
     if (!count($node = $this->head->node('base'))) {
-      $node = $this->head->prepend('base');
+      $node = $this->create('base')->prependTo($this->head);
     }
     $base = $base ? : implode('/', array(
       $this->theme['base'],
       $this->theme['name'],
       null
     ));
-    $node->href = $this->router->fullBase . $base;
+    $node->href = $this->router->fullBase . '/' . $base;
   }
 
   public function prefixAnchors($context = null)

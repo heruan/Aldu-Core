@@ -31,16 +31,16 @@ class Router extends Stub
       'prefixes' => array(),
       'routes' => array(
         'action' => array(
-          'path' => '%controller/%action/%arg:*',
+          'path' => '/%controller/%action/%arg:*',
           'arguments' => array()
         ),
         'read' => array(
-          'path' => '%controller/%arg/%action:?/%arg:*',
+          'path' => '/%controller/%arg/%action:?/%arg:*',
           'action' => 'read',
           'arguments' => array()
         ),
         'browse' => array(
-          'path' => '%controller/%arg:*',
+          'path' => '/%controller/%arg:*',
           'action' => 'browse',
           'arguments' => array()
         )
@@ -99,6 +99,19 @@ class Router extends Stub
     $this->prefixPath = $this->prefix . $this->path;
     $this->basePath = $this->basePrefix . $this->path;
     $this->fullPath = $this->fullBasePrefix . $this->path;
+    
+    /*var_dump(array(
+      'host' => $this->host,
+      'base' => $this->base,
+      'prefix' => $this->prefix,
+      'basePrefix' => $this->basePrefix,
+      'fullBase' => $this->fullBase,
+      'fullBasePrefix' => $this->fullBasePrefix,
+      'path' => $this->path,
+      'prefixPath' => $this->prefixPath,
+      'basePath' => $this->basePath,
+      'fullPath' => $this->fullPath
+    ));*/
 
     $this->openContext($this->path);
     $routeSteps = $steps;

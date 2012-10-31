@@ -35,7 +35,7 @@ class Locale extends Stub
   public function __construct($locale = null)
   {
     parent::__construct();
-    if (!$this->default = Locale\Models\Locale::first(static::cfg('default'))) {
+    if (!$this->default = Locale\Models\Locale::first(static::cfg('default.id'))) {
       $this->default = new Locale\Models\Locale(static::cfg('default'));
       $this->default->locale = $this->default;
       $this->default->save();

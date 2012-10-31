@@ -233,32 +233,6 @@ class Model extends Stub
     }
   }
 
-  public function __toArray($safe = false)
-  {
-    $array = array();
-    foreach (get_object_vars($this) as $name => $attribute) {
-      if ($safe && $attribute instanceof self) {
-        $attribute = array(
-          'class' => get_class($attribute),
-          'id' => $attribute->id
-        );
-      }
-      elseif ($safe && $attribute instanceof DateTime) {
-        $attribute = $attribute->format(ALDU_DATETIME_FORMAT);
-      }
-      elseif ($safe && $attribute instanceof self) {
-        $attribute = $attribute->id;
-      }
-      $array[$name] = $attribute;
-    }
-    return $array;
-  }
-
-  public function __toJSON()
-  {
-    return json_encode($this->__toArray(true));
-  }
-
   public function tag($tags, $relation = array())
   {
     if (!is_array($tags)) {
@@ -462,7 +436,7 @@ class Model extends Stub
   {
     if (is_array($action)) {
       $_ = $action;
-      $action = 'view';
+      $action = 'read';
     }
     extract(array_merge(array(
       'prefix' => null,
@@ -472,7 +446,7 @@ class Model extends Stub
     ), $_));
     $arguments = array_filter($arguments);
     $R = Router::instance();
-    if ($action === 'view' && $this->path) {
+    if ($action === 'read' && $this->path) {
       $url = $this->path;
     }
     else {
@@ -486,14 +460,14 @@ class Model extends Stub
       array_pop($parts);
       $ns = implode(NS, $parts);
       $id = $this->id ? '/' . $this->id : '';
-      $url = str_replace(NS, '/', strtolower($ns)) . '/' . $class . $id . '/' . $action;
+      $url = '/' . str_replace(NS, '/', strtolower($ns)) . '/' . $class . $id . '/' . $action;
     }
     $prefix = is_null($prefix) ? null : rtrim($prefix, '/');
     if ($prefix && $absolute) {
-      $url = $R->fullBase . $prefix . '/' . $url;
+      $url = $R->fullBase . $prefix . $url;
     }
     elseif ($prefix) {
-      $url = $prefix . '/' . $url;
+      $url = $prefix . $url;
     }
     elseif ($absolute) {
       $url = $R->fullBasePrefix . $url;

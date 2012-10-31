@@ -129,11 +129,10 @@ class Node extends Helper\DOM implements Iterator, Countable
     switch ($name) {
     default:
       array_unshift($arguments, $name);
-      $node = call_user_func_array(array(
-        $this->document,
-        'create'
+      return call_user_func_array(array(
+        $this,
+        'append'
       ), $arguments);
-      return $this->append($node);
     }
   }
 
@@ -235,6 +234,7 @@ class Node extends Helper\DOM implements Iterator, Countable
 
   public function append()
   {
+    $return = false;
     $nodes = func_get_args();
     if (is_string(current($nodes))) {
       $nodes = array(
@@ -243,6 +243,7 @@ class Node extends Helper\DOM implements Iterator, Countable
           'create'
         ), $nodes)
       );
+      $return = true;
     }
     if ($this->node instanceof NodeList) {
       foreach ($this->node as $item) {
@@ -284,11 +285,12 @@ class Node extends Helper\DOM implements Iterator, Countable
         }
       }
     }
-    return array_shift($nodes);
+    return $return ? array_shift($nodes) : $this;
   }
 
   public function prepend()
   {
+    $return = false;
     $nodes = func_get_args();
     if (is_string(current($nodes))) {
       $nodes = array(
@@ -297,6 +299,7 @@ class Node extends Helper\DOM implements Iterator, Countable
           'create'
         ), $nodes)
       );
+      $return = true;
     }
     if ($this->node instanceof NodeList) {
       foreach ($this->node as $item) {
@@ -307,7 +310,7 @@ class Node extends Helper\DOM implements Iterator, Countable
             $item->insertBefore($node->node, $item->firstChild);
             break;
           }
-          $item->inserBefore($node->node->cloneNode(true), $item->firstChild);
+          $item->insertBefore($node->node->cloneNode(true), $item->firstChild);
         }
       }
     }
@@ -318,7 +321,7 @@ class Node extends Helper\DOM implements Iterator, Countable
         $this->node->insertBefore($node->node, $this->node->firstChild);
       }
     }
-    return array_shift($nodes);
+    return $return ? array_shift($nodes) : $this;
   }
 
   public function appendTo($node)
@@ -327,6 +330,12 @@ class Node extends Helper\DOM implements Iterator, Countable
     return $this;
   }
 
+  public function prependTo($node)
+  {
+    $node->prepend($this);
+    return $this;
+  }
+  
   public function import($document)
   {
     $this->document = $document;
