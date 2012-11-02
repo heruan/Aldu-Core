@@ -101,7 +101,7 @@ class View extends Stub
     }
     return new $self::$Controller();
   }
-  
+
   public static function model()
   {
     $self = get_called_class();
@@ -125,7 +125,7 @@ class View extends Stub
     }
     return new $self::$Model();
   }
-  
+
   public function select($form, $name, $_ = array())
   {
     $_ = array_merge(array(
@@ -303,7 +303,7 @@ class View extends Stub
     extract(array_merge(array(
       'actions' => static::cfg('table.actions'),
       'headers' => static::cfg('table.headers'),
-      'columns' => static::cfg('table.columns') ? : get_object_vars($this->model)
+      'columns' => static::cfg('table.columns') ? : array_keys(get_object_vars($this->model))
     ), $_));
     foreach ($columns as $name => $title) {
       if (is_numeric($name)) {

@@ -129,6 +129,7 @@ class Controller extends Event\Listener
           $model = new $class();
         }
         if (!$model->authorized($this->request->aro, $action)) {
+          $this->response->message($this->view->locale->t("You cannot %s this %s.", $action, $model->name()), LOG_ERR);
           continue;
         }
         $tags = array(
@@ -188,7 +189,7 @@ class Controller extends Event\Listener
             $models[$class] = array();
           }
           $models[$class][$index] = $model;
-          $this->response->message($this->view->locale->t('%s %s successfully %s.', $model->name(), $model->id, $this->view->locale->t(Inflector::pastParticiple($action))));
+          $this->response->message($this->view->locale->t('%s %s successfully %s.', $model->name(), $model->id, $this->view->locale->t(Inflector::pastParticiple($action))), LOG_NOTICE);
           foreach ($tags as $type => $tagArray) {
             foreach ($tagArray as $tag) {
               extract($tag);

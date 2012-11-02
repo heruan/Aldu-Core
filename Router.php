@@ -99,7 +99,7 @@ class Router extends Stub
     $this->prefixPath = $this->prefix . $this->path;
     $this->basePath = $this->basePrefix . $this->path;
     $this->fullPath = $this->fullBasePrefix . $this->path;
-    
+
     /*var_dump(array(
       'host' => $this->host,
       'base' => $this->base,
@@ -130,7 +130,7 @@ class Router extends Stub
     }
     $this->closeContext($this->path);
 
-    if (count($routeSteps) && empty($trace)) {
+    if (empty($trace)) {
       $this->response->status(404);
     }
     return $trace;
@@ -146,7 +146,7 @@ class Router extends Stub
     $action = null;
     $arguments = array();
     do {
-      if ($route->path == $path) {
+      if (trim($route->path, '/') == $path) {
         $steps = array();
         break;
       }

@@ -95,7 +95,7 @@ class LDAP extends Datasource\Driver implements DriverInterface
     $dn = array();
     $class = is_object($model) ? get_class($model) : $model;
     $rdn = $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.rdn') ? : 'name';
-    $attribute = array_search($rdn, $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.mappings')) ? 
+    $attribute = array_search($rdn, $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.mappings')) ?
       : $rdn;
     $dn[] = $value ? "$rdn=$value" : "$rdn={$model->$attribute}";
     if ($base = $class::cfg('datasource.ldap.' . $class::cfg('datasource.ldap.type') . '.base')) {
@@ -403,16 +403,12 @@ class LDAP extends Datasource\Driver implements DriverInterface
           if ($key === 'objectSid') {
             $value[0] = $this->binSIDtoText($value[0]);
           }
-          $type = $class::cfg('datasource.ldap.type');
-          $key = array_search($key, $class::cfg("datasource.ldap.$type.mappings")) ? : $key;
-          if ($ref = $class::cfg("datasource.ldap.$type.references.$key")) {
-            array_walk($value, function (&$item, $key, $ref)
-            {
-              $refClass = $ref['class'];
-              $item = $refClass::first(array(
-                $ref['attribute'] => $item
-              ));
-            }, $ref);
+          $ldap = $class::cfg('datasource.ldap.type');
+          $key = array_search($key, $class::cfg("datasource.ldap.$ldap.mappings")) ? : $key;
+          if ($ref = $class::cfg("datasource.ldap.$ldap.references.$key")) {
+            $refClass = $ref['class'];
+            $refKey = $ref['attribute'];
+            $value = $refClass::read(array($refKey => $value));
           }
           $this->normalizeAttribute($class, $key, $value);
           if (!$class::cfg("attributes.$key.multiple")) {

@@ -85,9 +85,10 @@ class Model extends Stub
   );
   protected static $attributes = array(
     'id' => array(
-      'type' => 'int',
+      'type' => 'number',
       'null' => false,
-      'other' => 'unsigned'
+      'step' => 1,
+      'min' => 1
     ),
     'acl' => array(
       'type' => array(
@@ -95,6 +96,7 @@ class Model extends Stub
         'edit',
         'delete'
       ),
+      'multiple' => true,
       'default' => array(
         'read'
       )
@@ -106,7 +108,7 @@ class Model extends Stub
       'type' => 'datetime'
     ),
     '_' => array(
-      'type' => 'int',
+      'type' => 'number',
       'null' => false,
       'default' => 0
     )
@@ -297,7 +299,7 @@ class Model extends Stub
     $args[0] = $class;
     $args[1] = array_replace_recursive($class::cfg('datasource.search'), $args[1]);
     $args[2] = array_replace_recursive($class::cfg('datasource.options'), $args[2]);
-    $return = call_user_func_array(array(
+    return call_user_func_array(array(
       static::datasource($function),
       $function
     ), $args);
@@ -314,12 +316,6 @@ class Model extends Stub
       return $return;
     }
     return $return;
-  }
-
-  public static function authorize($model)
-  {
-    $request = Net\HTTP\Request::instance();
-    return $model->authorized($request->aro);
   }
 
   public static function name($inflection = null)
@@ -375,37 +371,40 @@ class Model extends Stub
 
   protected function _authorized($aro, $action = 'read', $attribute = null)
   {
-    if ($this->acl && in_array($action, $this->acl)) {
-      return true;
-    }
-    if (!$aro) {
-      return false;
-    }
-    $belongs = array_merge(array(
-      $aro
-    ), $aro->belongs());
-    foreach ($belongs as $belongsAro) {
-      if ($this->belongs($belongsAro, array(
-        'acl' => array(
-          array(
-            $action
-          )
-        )
-      ))) {
-        return true;
-      }
-    }
-    foreach (static::cfg('acls') as $acl) {
+    foreach (static::cfg('acls') as $acl_name => $acl) {
       extract(array_merge(array(
+        'model' => null,
         'search' => array(),
         'options' => array(),
         'actions' => array()
       ), $acl), EXTR_PREFIX_ALL, 'acl');
-      if ($aro->is($acl_model, $acl_search) && in_array($action, $acl_actions)) {
+      if (!$acl_model) {
+        if (in_array($action, $acl_actions)) {
+          return true;
+        }
+        continue;
+      }
+      if ($aro && $aro->is($acl_model, $acl_search) && in_array($action, $acl_actions)) {
         return true;
       }
       foreach ($acl_model::read($acl_search, $acl_options) as $owner) {
-        if ($owner->has($aro) && in_array($action, $acl_actions)) {
+        if ($aro && $owner->has($aro) && in_array($action, $acl_actions)) {
+          return true;
+        }
+      }
+    }
+    if ($aro) {
+      $belongs = array_merge(array(
+        $aro
+      ), $aro->belongs());
+      foreach ($belongs as $belongsAro) {
+        if ($this->belongs($belongsAro, array(
+          'acl' => array(
+            array(
+              $action
+            )
+          )
+        ))) {
           return true;
         }
       }
@@ -415,6 +414,9 @@ class Model extends Stub
 
   public function authorized($aro, $action = 'read', $attribute = null)
   {
+    if ($this->acl && in_array($action, $this->acl)) {
+      return true;
+    }
     $Cache = Cache::instance();
     $cache = implode('::', array_filter(array(
       get_class($this),
@@ -430,6 +432,12 @@ class Model extends Stub
       $Cache->store($cache, $authorized);
     }
     return $authorized;
+  }
+
+  public static function authorize($model)
+  {
+    $request = Net\HTTP\Request::instance();
+    return $model->authorized($request->aro);
   }
 
   public function url($action = 'read', $_ = array())

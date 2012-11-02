@@ -113,8 +113,8 @@ class Form extends Helper\HTML
 
   public function stack($new)
   {
-    $this->stack[] = $this->node;
-    return $this->node = $new->node;
+    $this->stack[] = $this->form;
+    return $this->form = $new;
   }
 
   public function text($name = null)
@@ -126,15 +126,16 @@ class Form extends Helper\HTML
   public function fieldset()
   {
     $args = func_get_args();
-    $fieldset = $this->__call(__FUNCTION__, $args);
-    $this->stack($fieldset->node('fieldset'));
+    $fieldset = $this->form->append('fieldset');
+    $fieldset->append('legend', array_shift($args));
+    $this->stack($fieldset);
     return $fieldset;
   }
 
   public function unstack()
   {
-    $stack = $this->node;
-    $this->node = array_pop($this->stack);
+    $stack = $this->form;
+    $this->form = array_pop($this->stack);
     return $stack;
   }
 
@@ -144,7 +145,7 @@ class Form extends Helper\HTML
       $value = $value->format(ALDU_DATETIME_FORMAT);
     }
   }
-  
+
   public function group($options)
   {
     $group = $this->form->append('div.aldu-core-view-helper-html-form-element');
@@ -408,16 +409,14 @@ class Form extends Helper\HTML
         }
         break;
       }
-      if ($label) {
-        $label->append('span.tooltip', $this->locale->t('Maximum file size: %sMB', round($this->request->upload->maxUploadSize()
+      $help = $this->create('span.help-block', $this->locale->t('Maximum file size: %sMB', round($this->request->upload->maxUploadSize()
           / 1024 / 1024)));
-      }
       $element = $this->create('input', array_merge($attributes, array(
         'id' => $id,
         'name' => $_name,
         'type' => $type
       )));
-      $group->append($label, $controls->append($thumb, $element));
+      $group->append($label, $controls->append($thumb, $element, $help));
       break;
     case 'hidden':
       $element = $this->create('input', array_merge($attributes, array(
@@ -481,8 +480,8 @@ class Form extends Helper\HTML
     $this->form->append($$render);
     return $$render;
   }
-  
-  public function confirm($node, $reason = '')
+
+  public function confirm($node, $reason = 'confirm')
   {
     if ($input = $this->document->node('input', $node)->first()) {
       $title = '';
@@ -491,13 +490,15 @@ class Form extends Helper\HTML
       }
       $model = $this->model;
       $index = $this->currentIndex();
-      $this->setModel(false);
       $confirm = $this->{$input->type}(null, array(
         'title' => $title,
-        'value' => $input->value
+        'value' => $input->value,
+        'required' => $input->required
       ));
-      $this->setModel($model, $index);
-      $confirm->node('input')->first()->set('data-equals', $input->id);
+      $confirm->node('input')->data(array(
+        'equals' => $input->id,
+        'validation-matches-match' => addslashes($input->name)
+      ));
       return $confirm;
     }
   }

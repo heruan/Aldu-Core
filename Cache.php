@@ -53,6 +53,7 @@ class Cache extends Stub
 
   public function fetch($key)
   {
+    file_put_contents('/tmp/cache.log', $key . "\n", FILE_APPEND);
     if (!$this->enabled || !static::cfg('fetch'))
       return ALDU_CACHE_FAILURE;
     $fetch = $this->engine->fetch($this->prefix . $key);

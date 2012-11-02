@@ -192,7 +192,9 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   {
     $options = array_merge(array(
       'type' => 'text',
-      'other' => null,
+      'multiple' => false,
+      'step' => 1,
+      'min' => null,
       'null' => true,
       'default' => null
     ), $class::cfg("attributes.$attribute"));
@@ -211,9 +213,11 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
   {
     extract(array_merge(array(
       'type' => null,
-      'other' => null,
+      'multiple' => false,
+      'step' => 1,
+      'min' => null,
       'null' => true,
-      'default' => null,
+      'default' => null
     ), $options));
     if (is_array($default)) {
       $default = implode(",", array_map('var_export', $default, array_fill(0, count($default), true)));
@@ -224,36 +228,43 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
     $default = is_null($default) ? ($null ? "DEFAULT NULL" : '') : "DEFAULT $default";
     $null = $null ? "" : "NOT NULL";
     if (is_array($type)) {
-      return "`$column` SET("
-        . implode(",", array_map('var_export', $type, array_fill(0, count($type), true))) . ") $null $default,\n\t";
+      $implode = implode(",", array_map('var_export', $type, array_fill(0, count($type), true)));
+      return $multiple ? "`$column` SET($implode) $null $default,\n\t" :
+        "`$column` ENUM($implode) $null $default,\n\t";
     }
     if ($column === 'id') {
       $default = 'AUTO_INCREMENT';
     }
+    if ($type === 'number') {
+      if (is_numeric($min)) {
+        $min = ($min < 0) ? null : 'unsigned';
+      }
+      $type = (preg_match('/^any$|\./', $step)) ? 'float' : 'int';
+    }
     switch ($type) {
     case 'int':
-      return "`$column` INT $other $null $default,\n\t";
+      return "`$column` INT $min $null $default,\n\t";
     case 'float':
-      return "`$column` FLOAT $other $null $default,\n\t";
+      return "`$column` FLOAT $min $null $default,\n\t";
     case 'text':
-      return "`$column` VARCHAR(128) $other $null $default,\n\t";
+      return "`$column` VARCHAR(128) $null $default,\n\t";
     case 'textarea':
       return "`$column` TEXT,\n\t";
     case 'date':
-      return "`$column` DATE $other $null $default,\n\t";
+      return "`$column` DATE $null $default,\n\t";
     case 'time':
-      return "`$column` TIME $other $null $default,\n\t";
+      return "`$column` TIME $null $default,\n\t";
     case 'datetime':
-      return "`$column` DATETIME $other $null $default,\n\t";
+      return "`$column` DATETIME $null $default,\n\t";
     case 'file':
     case 'data':
     case 'blob':
-      return "`$column` MEDIUMBLOB $other $null $default,\n\t";
+      return "`$column` MEDIUMBLOB $null $default,\n\t";
     case 'boolean':
     case 'bool':
-      return "`$column` TINYINT(1) $other $null $default,\n\t";
+      return "`$column` TINYINT(1) $null $default,\n\t";
     }
-    return "`$column` VARCHAR(128) $other $null $default,\n\t";
+    return "`$column` VARCHAR(128) $null $default,\n\t";
   }
 
   protected function tablesFor($class)
@@ -421,7 +432,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $value->save();
       }
       if (!$this->first(get_class($value), array('id' => $value->id))) {
-        $this->save($value);
+        //$this->save($value);
       }
       $value = (int) $value->id;
     }
@@ -1217,6 +1228,6 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
       $idKey => $id,
       $pwKey => $password
     ));
-    return $model ? true : false;
+    return $model ? : false;
   }
 }
