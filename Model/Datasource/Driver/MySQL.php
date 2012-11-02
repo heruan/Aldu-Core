@@ -432,7 +432,7 @@ class MySQL extends Datasource\Driver implements Datasource\DriverInterface
         $value->save();
       }
       if (!$this->first(get_class($value), array('id' => $value->id))) {
-        //$this->save($value);
+        $this->save($value);
       }
       $value = (int) $value->id;
     }

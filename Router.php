@@ -91,7 +91,7 @@ class Router extends Stub
     $this->host = $this->request->host;
     $this->base = $this->request->base;
     $prefix = implode('/', array_diff($prefixSteps, $steps));
-    $this->prefix = $prefix ? $prefix . '/' : '';
+    $this->prefix = $prefix ? $prefix : '';
     $this->basePrefix = $this->base . $this->prefix;
     $this->fullBase = $this->request->fullBase;
     $this->fullBasePrefix = $this->fullBase . $this->prefix;

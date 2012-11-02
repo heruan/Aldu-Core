@@ -148,10 +148,13 @@ class Form extends Helper\HTML
 
   public function group($options)
   {
-    $group = $this->form->append('div.aldu-core-view-helper-html-form-element');
-    $group->label($options['title']);
-    $controls = $group->append('div.aldu-core-view-helper-html-form-controls controls-row');
-    call_user_func_array(array($controls, 'append'), $options['controls']);
+    extract(array_merge(array('title' => '', 'attributes' => array(), 'controls' => array()), $options));
+    $group = $this->form->append('div.aldu-core-view-helper-html-form-element', $attributes);
+    $group->label($title);
+    foreach ($controls as $elements) {
+      $row = $group->append('div.aldu-core-view-helper-html-form-controls controls-row');
+      call_user_func_array(array($row, 'append'), $elements);
+    }
     return $group;
   }
 
@@ -279,10 +282,10 @@ class Form extends Helper\HTML
         'name' => $_name
       )));
       if ($hint) {
-        $element->option($hint);
+        $element->option($hint, array('value' => null, 'disabled' => true));
       }
       if (!$required) {
-        $element->option($this->locale->t("None"));
+        $element->option($this->locale->t("None"), array('value' => null));
       }
       foreach ($options as $_value => $_label) {
         if (is_array($_label)) {
