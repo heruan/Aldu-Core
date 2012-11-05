@@ -73,6 +73,7 @@ class Form extends Helper\HTML
       'action' => $this->context->url($this->action),
       'method' => $method
     )));
+    //$this->node = $this->form->node;
     if ($redirect) {
       $this->append('input', array(
         'form' => $this->id,
@@ -113,8 +114,8 @@ class Form extends Helper\HTML
 
   public function stack($new)
   {
-    $this->stack[] = $this->form;
-    return $this->form = $new;
+    $this->stack[] = $this->node;
+    return $this->node = $new->node;
   }
 
   public function text($name = null)
@@ -126,7 +127,7 @@ class Form extends Helper\HTML
   public function fieldset()
   {
     $args = func_get_args();
-    $fieldset = $this->form->append('fieldset');
+    $fieldset = $this->append('fieldset');
     $fieldset->append('legend', array_shift($args));
     $this->stack($fieldset);
     return $fieldset;
@@ -134,8 +135,8 @@ class Form extends Helper\HTML
 
   public function unstack()
   {
-    $stack = $this->form;
-    $this->form = array_pop($this->stack);
+    $stack = $this->node;
+    $this->node = array_pop($this->stack);
     return $stack;
   }
 
@@ -148,12 +149,25 @@ class Form extends Helper\HTML
 
   public function group($options)
   {
-    extract(array_merge(array('title' => '', 'attributes' => array(), 'controls' => array()), $options));
-    $group = $this->form->append('div.aldu-core-view-helper-html-form-element', $attributes);
-    $group->label($title);
+    extract(array_merge(array(
+      'title' => '',
+      'attributes' => array(),
+      'controls' => array(),
+      'required' => false
+    ), $options));
+    $group = $this->append('div.aldu-core-view-helper-html-form-element', $attributes);
+    if ($title) {
+      $group->label($title);
+    }
+    if ($required) {
+      $group->addClass('aldu-core-view-helper-html-form-required');
+    }
     foreach ($controls as $elements) {
       $row = $group->append('div.aldu-core-view-helper-html-form-controls controls-row');
-      call_user_func_array(array($row, 'append'), $elements);
+      call_user_func_array(array(
+        $row,
+        'append'
+      ), $elements);
     }
     return $group;
   }
@@ -170,10 +184,12 @@ class Form extends Helper\HTML
       'title' => '',
       'description' => '',
       'hint' => '',
+      'none' => $this->locale->t('None'),
       'attributes' => array(),
       'options' => array(),
       'required' => false,
       'readonly' => $readonly,
+      'multiple' => false,
       'value' => array_key_exists($name, $this->values) ? $this->values[$name] : false,
       'relation' => array(),
       'redirect' => false,
@@ -190,6 +206,9 @@ class Form extends Helper\HTML
     }
     $id = uniqid(Inflector::slug($name));
     $_name = $modelClass . '[' . $this->indexes[$modelClass] . '][' . $name . ']';
+    if ($multiple) {
+      $_name .= '[]';
+    }
     $group = $this->create('div', array(
       'title' => $description,
       'data-name' => $name,
@@ -200,9 +219,9 @@ class Form extends Helper\HTML
       )))
     ));
     $controls = $this->create('div.aldu-core-view-helper-html-form-controls');
-    $label = $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
-      'for' => $id
-    ));
+    $label = $title ? $this->create('label.aldu-core-view-helper-html-form-label', $title, array(
+        'for' => $id
+      )) : null;
     switch ($type) {
     case 'radiogroup':
       foreach ($options as $option) {
@@ -261,7 +280,8 @@ class Form extends Helper\HTML
       }
       $label->addClass($type);
       $label->prepend($element);
-      $controls->append($label);
+      $element = $label;
+      $controls->append($element);
       $group->append($controls);
       break;
     case 'select':
@@ -282,10 +302,16 @@ class Form extends Helper\HTML
         'name' => $_name
       )));
       if ($hint) {
-        $element->option($hint, array('value' => null, 'disabled' => true));
+        $element->option($hint, array(
+          'value' => null,
+          'disabled' => true,
+          'selected' => true
+        ));
       }
       if (!$required) {
-        $element->option($this->locale->t("None"), array('value' => null));
+        $element->option($none, array(
+          'value' => null
+        ));
       }
       foreach ($options as $_value => $_label) {
         if (is_array($_label)) {
@@ -412,14 +438,14 @@ class Form extends Helper\HTML
         }
         break;
       }
-      $help = $this->create('span.help-block', $this->locale->t('Maximum file size: %sMB', round($this->request->upload->maxUploadSize()
-          / 1024 / 1024)));
+      $hint = $this->create('span.help-block', $this->locale->t('Maximum file size: %sMB', round($this->request->upload->maxUploadSize()
+        / 1024 / 1024)));
       $element = $this->create('input', array_merge($attributes, array(
         'id' => $id,
         'name' => $_name,
         'type' => $type
       )));
-      $group->append($label, $controls->append($thumb, $element, $help));
+      $group->append($label, $controls->append($thumb, $element, $hint));
       break;
     case 'hidden':
       $element = $this->create('input', array_merge($attributes, array(
@@ -430,7 +456,7 @@ class Form extends Helper\HTML
         'value' => $value !== false ? $value : null
       )));
       $render = 'element';
-      $this->form->append($element);
+      $this->append($element);
       break;
     case 'text':
     case 'password':
@@ -446,7 +472,10 @@ class Form extends Helper\HTML
       if ($description) {
         $element->placeholder = $description;
       }
-      $group->append($label, $controls->append($element));
+      if ($hint) {
+        $hint = $this->create('span.help-block', $hint);
+      }
+      $group->append($label, $controls->append($element, $hint));
     }
     if ($required) {
       $element->required = 'required';
@@ -480,7 +509,7 @@ class Form extends Helper\HTML
       'name' => $name
     ));
     $this->elements[$name] = $element;
-    $this->form->append($$render);
+    $this->append($$render);
     return $$render;
   }
 

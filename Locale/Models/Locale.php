@@ -18,8 +18,9 @@
 
 namespace Aldu\Core\Locale\Models;
 use Aldu\Core;
+use JsonSerializable;
 
-class Locale extends Core\Locale\Localized
+class Locale extends Core\Locale\Localized implements JsonSerializable
 {
   public $name;
   public $title;
@@ -36,4 +37,11 @@ class Locale extends Core\Locale\Localized
       )
     )
   );
+
+  public function jsonSerialize()
+  {
+    $self = $this;
+    unset($self->locale);
+    return $self;
+  }
 }

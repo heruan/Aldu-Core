@@ -72,7 +72,7 @@ class UI extends Helper\HTML
       // aldu-ui-form
       $form = $node->node('div.aldu-core-view-helper-html-form')->addClass('form-horizontal');
       $group = $form->node('div.aldu-core-view-helper-html-form-element')->addClass('control-group');
-      $group->node('label')->addClass('control-label');
+      $form->node('div.aldu-core-view-helper-html-form-element > label')->addClass('control-label');
       $group->node('div.aldu-core-view-helper-html-form-controls')->addClass('controls');
       $actions = $form->node('div.aldu-core-view-helper-html-form-actions')->addClass('form-actions');
       $actions->node('button[type="submit"]')->addClass('btn btn-primary');

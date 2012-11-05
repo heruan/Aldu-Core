@@ -114,7 +114,17 @@ class Document extends Helper\DOM
     switch ($this->type) {
     case 'html':
       if (file_exists($filename)) {
-        $this->document->loadHtmlFile($filename);
+        $this->document->loadHTMLFile($filename);
+      }
+      elseif (preg_match('/^http/', $filename)) {
+        $opts = array(
+          'http' => array(
+            'user_agent' => 'PHP libxml agent'
+          )
+        );
+        $context = stream_context_create($opts);
+        libxml_set_streams_context($context);
+        $this->document->loadHTMLFile($filename);
       }
       else {
         $this->document->loadHTML($filename);
@@ -141,19 +151,18 @@ class Document extends Helper\DOM
     $this->xpath = new DOMXPath($this->document);
     $expression = self::selectorToQuery($selector);
     $nodes = array();
-    if ($context) {
-      if ($context->node instanceof NodeList) {
-        foreach ($context->node as $node) {
-          foreach ($this->xpath->query($expression, $node, $registerNodeNS) as $n) {
-            $nodes[] = $n;
-          }
-        }
-      }
-      else {
-        $context = $context->node;
-        foreach ($this->xpath->query($expression, $context, $registerNodeNS) as $n) {
+    $context = $context ? : $this->root;
+    if ($context->node instanceof NodeList) {
+      foreach ($context->node as $node) {
+        foreach ($this->xpath->query($expression, $node, $registerNodeNS) as $n) {
           $nodes[] = $n;
         }
+      }
+    }
+    else {
+      $context = $context->node;
+      foreach ($this->xpath->query($expression, $context, $registerNodeNS) as $n) {
+        $nodes[] = $n;
       }
     }
     return $nodes;

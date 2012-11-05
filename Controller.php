@@ -74,7 +74,7 @@ class Controller extends Event\Listener
     $this->model->__attach($this->view);
   }
 
-  public function browse($offset = 0, $limit = 10)
+  public function browse($offset = 0, $limit = 0)
   {
     $search = $this->request->query('search');
     $options = array_merge($this->request->query('options'), array(
@@ -125,8 +125,11 @@ class Controller extends Event\Listener
         continue;
       }
       while (list($index, $attributes) = each($array)) {
-        if (!isset($attributes['id']) || !($model = $class::instance($attributes['id']))) {
+        if (!isset($attributes['id']) || !$attributes['id']) {// || !($model = $class::instance($attributes['id']))) {
           $model = new $class();
+        }
+        else {
+          $model = $class::instance($attributes['id']);
         }
         if (!$model->authorized($this->request->aro, $action)) {
           $this->response->message($this->view->locale->t("You cannot %s this %s.", $action, $model->name()), LOG_ERR);
@@ -168,6 +171,7 @@ class Controller extends Event\Listener
             }
           }
           elseif ($model->authorized($this->request->aro, $action, $attribute)) {
+            // TODO if(is_array($value)) AKA 'multiple' = true
             $type = $class::cfg("attributes.$attribute.type");
             if (is_subclass_of($type, 'Aldu\Core\Model')) {
               if ($$type = $type::first($value)) {
@@ -223,6 +227,7 @@ class Controller extends Event\Listener
         }
       }
     }
+    return $models;
   }
 
   public function delete($id)

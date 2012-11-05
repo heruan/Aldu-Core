@@ -50,7 +50,17 @@ class Upload extends Net\HTTP
           if (!isset($data[$class][$key])) {
             $data[$class][$key] = array();
           }
-          if (is_uploaded_file($uploadpath)) {
+          if (is_array($uploadpath)) {
+            if (!isset($data[$class][$key][$attribute])) {
+              $data[$class][$key][$attribute] = array();
+            }
+            foreach ($uploadpath as $k => $up) {
+              if (is_uploaded_file($up)) {
+                $data[$class][$key][$attribute][] = file_get_contents($up);
+              }
+            }
+          }
+          elseif (is_uploaded_file($uploadpath)) {
             $data[$class][$key][$attribute] = file_get_contents($uploadpath);
           }
         }

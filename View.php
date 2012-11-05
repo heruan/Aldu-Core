@@ -133,13 +133,10 @@ class View extends Stub
       'description' => '',
       'add' => true,
       'required' => false,
-      'none' => $this->locale->t('None'),
       'value' => null,
       'model' => $this->model,
       'search' => array(),
-      'options' => array(
-        'limit' => 10
-      )
+      'options' => array()
     ), $_);
     extract($_);
     $models = array();
@@ -370,12 +367,12 @@ class View extends Stub
     foreach ($models as $i => $model) {
       $array[$i] = array();
       foreach (get_object_vars($model) as $attribute => $value) {
-        if ($value instanceof Model) {
+        if (false && $value instanceof Model) {
           $value = array(
-            'url' => $this->router->fullPath,
-            'path' => $this->router->basePath,
-            'class' => get_class($model),
-            'id' => $model->id,
+            'url' => $value->url('read', array('absolute' => true)),
+            'path' => $value->url('read'),
+            'class' => get_class($value),
+            'id' => $value->id,
           );
         }
         $array[$i][$attribute] = $value;

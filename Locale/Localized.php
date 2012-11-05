@@ -42,4 +42,19 @@ abstract class Localized extends Core\Model
   );
 
   public $locale;
+
+  protected static function _read($function, $search = array(), $options = array())
+  {
+    // TODO
+    return parent::_read($function, $search, $options);
+  }
+
+  public function save()
+  {
+    $locale = Core\Locale::instance();
+    if (!isset($this->locale) || !$this->locale) {
+      $this->locale = $locale->current;
+    }
+    return parent::save();
+  }
 }

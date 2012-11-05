@@ -290,19 +290,16 @@ class Model extends Stub
     return self::_read(__FUNCTION__, $search, $options);
   }
 
-  protected static function _read($function)
+  protected static function _read($function, $search = array(), $options = array())
   {
-    $class = get_called_class();
     $request = Net\HTTP\Request::instance();
-    $args = func_get_args();
-    $function = $args[0];
-    $args[0] = $class;
-    $args[1] = array_replace_recursive($class::cfg('datasource.search'), $args[1]);
-    $args[2] = array_replace_recursive($class::cfg('datasource.options'), $args[2]);
-    return call_user_func_array(array(
+    $class = get_called_class();
+    $search = array_replace_recursive($class::cfg('datasource.search'), $search);
+    $options = array_replace_recursive($class::cfg('datasource.options'), $options);
+    $return = call_user_func(array(
       static::datasource($function),
       $function
-    ), $args);
+    ), $class, $search, $options);
     if (is_array($return)) {
       return array_filter($return, array(
         get_called_class(),

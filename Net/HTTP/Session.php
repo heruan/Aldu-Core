@@ -26,7 +26,6 @@ class Session extends Net\HTTP
 
   public function __construct()
   {
-    $this->id = $this->start();
   }
 
   public function start()
@@ -40,7 +39,8 @@ class Session extends Net\HTTP
         }
       }
     }
-    return $id;
+    $this->id = $id;
+    return $this->id;
   }
 
   public function close()

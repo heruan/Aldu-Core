@@ -280,6 +280,7 @@ class Request extends Net\HTTP
     $this->sapi = PHP_SAPI;
     $this->upload = new Upload();
     $this->session = new Session();
+    $this->session->start();
     $this->cookie = new Cookie();
     $this->cipher = new Core\Utility\Cipher();
     $this->resource = strtolower($resource);
@@ -360,6 +361,10 @@ class Request extends Net\HTTP
 
   protected function _referer($local = true)
   {
+    if ($referer = $this->session->read('X-Aldu-Referer')) {
+      $this->session->delete('X-Aldu-Referer');
+      return $referer;
+    }
     $referer = static::env('HTTP_REFERER');
     if ($forwarded = static::env('HTTP_X_FORWARDED_HOST')) {
       $referer = $forwarder;
@@ -419,10 +424,23 @@ class Request extends Net\HTTP
     return md5(implode('::', $id));
   }
 
-  public static function updateAro($class, $id, $password = null, $encrypted = true)
+  public static function updateAro($class, $id = null, $password = null, $encrypted = true)
   {
     $self = self::instance();
+    if (is_object($class)) {
+      $model = $class;
+      $class = get_class($model);
+      $idKey = $class::cfg('datasource.authentication.id');
+      $pwKey = $class::cfg('datasource.authentication.password');
+      $id = $model->$idKey;
+      $password = $self->cipher->encrypt($model->$pwKey);
+    }
     if ($aro = $class::authenticate($id, $password, $encrypted)) {
+      $self->session->save(__METHOD__, array(
+          $class,
+          $id,
+          $password
+      ));
       $self->aro = $aro;
     }
   }

@@ -2130,7 +2130,7 @@ class Inflector
    * @access public
    * @link http://book.cakephp.org/view/1479/Class-methods
    */
-  public static function slug($string, $replacement = '_')
+  public static function slug($string, $replacement = '-')
   {
     $quotedReplacement = preg_quote($replacement, '/');
 

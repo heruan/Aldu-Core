@@ -331,7 +331,7 @@ class Router extends Stub
     return $action;
   }
 
-  public function redirect($uri = '', $prefix = null)
+  public function redirect($uri = null, $prefix = null)
   {
     $uri = $uri ? : $this->base;
     if ($prefix) {
